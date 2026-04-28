@@ -1,0 +1,39 @@
+services:
+  db:
+    image: pgvector/pgvector:pg15-trixie
+    container_name: vizoology_postgres
+    environment:
+      POSTGRES_DB: vizoology
+      POSTGRES_USER: vizoology_user
+      POSTGRES_PASSWORD: vizoology_password
+    ports:
+      - "65432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vizoology_user -d vizoology"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  vizoology:
+    build: .
+    container_name: vizoology
+    command: >
+      sh -c "python manage.py migrate --noinput && python manage.py run"
+    ports:
+      - "9876:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_ENGINE: postgresql
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: vizoology
+      DATABASE_USER: vizoology_user
+      DATABASE_PASSWORD: vizoology_password
+      GUNICORN_BIND: 0.0.0.0:8000
+    depends_on:
+      db:
+        condition: service_healthy
