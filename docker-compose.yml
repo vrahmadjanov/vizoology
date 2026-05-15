@@ -24,6 +24,8 @@ services:
   #     sh -c "python manage.py migrate --noinput && python manage.py run"
   #   ports:
   #     - "9876:8000"
+  #   volumes:
+  #     - ./media:/app/media
   #   env_file:
   #     - .env
   #   environment:

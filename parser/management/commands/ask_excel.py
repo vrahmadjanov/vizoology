@@ -7,17 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError
 from openpyxl import load_workbook
 
-from ai.management.commands.ask import (
-    _save_history,
-    _sources_for_answer,
-    _unique_sources,
-)
-from ai.rag import RAGAnswer, answer_question
-from parser.parser import (
-    iter_nonempty_questions_in_column,
-    resolve_first_answer_column_index,
-    write_three_column_answer_block,
-)
+from parser.services.excel_batch import fill_workbook_rag
 
 
 class Command(BaseCommand):
@@ -97,64 +87,25 @@ class Command(BaseCommand):
         except Exception as exc:
             raise CommandError(f"Не удалось открыть книгу: {exc}") from exc
 
-        if sheet_name:
-            if sheet_name not in wb.sheetnames:
-                raise CommandError(
-                    f"Лист «{sheet_name}» не найден. Есть: {', '.join(wb.sheetnames)}"
-                )
-            ws = wb[sheet_name]
-        else:
-            ws = wb.active
-        if ws is None:
-            raise CommandError("В книге нет активного листа.")
-
-        first_ans_col = resolve_first_answer_column_index(
-            question_column_letter=questions_col,
-            answer_block_start_column_letter=answers_start,
-        )
-
-        count = 0
-        errors = 0
-        for row, question in iter_nonempty_questions_in_column(
-            ws, questions_col or None
-        ):
-            try:
-                rag_answer = answer_question(
-                    question, top_k=top_k, min_score=min_score
-                )
-            except Exception as exc:
-                errors += 1
-                msg = f"Ошибка RAG: {exc}"
-                self.stderr.write(self.style.WARNING(f"Строка {row}: {msg}"))
-                write_three_column_answer_block(
-                    ws,
-                    row,
-                    first_answer_column_index=first_ans_col,
-                    answer_text=msg,
-                    sources_text="",
-                    reasoning_text="",
-                )
-                continue
-
-            sources_cell = _rag_sources_to_cell(rag_answer)
-            write_three_column_answer_block(
-                ws,
-                row,
-                first_answer_column_index=first_ans_col,
-                answer_text=rag_answer.structured_answer.short_answer,
-                sources_text=sources_cell,
-                reasoning_text=rag_answer.structured_answer.reasoning_summary,
+        try:
+            stats = fill_workbook_rag(
+                wb,
+                sheet_name=sheet_name,
+                questions_col=questions_col,
+                answers_start_col=answers_start,
+                top_k=top_k,
+                min_score=min_score,
+                save_history=not options["no_history"],
+                warn_row=lambda msg: self.stderr.write(self.style.WARNING(msg)),
+                info_row=lambda msg: self.stdout.write(msg),
             )
-            count += 1
-            if not options["no_history"]:
-                try:
-                    _save_history(rag_answer, top_k=top_k, min_score=min_score)
-                except DatabaseError as exc:
-                    raise CommandError(
-                        "Не удалось сохранить историю в БД (миграции ai?). "
-                        f"Подробнее: {exc}"
-                    ) from exc
-            self.stdout.write(f"Строка {row}: готово")
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
+        except DatabaseError as exc:
+            raise CommandError(
+                "Не удалось сохранить историю в БД (миграции ai?). "
+                f"Подробнее: {exc}"
+            ) from exc
 
         try:
             wb.save(path)
@@ -163,19 +114,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Сохранено в {path}: обработано вопросов {count}, с ошибками {errors}."
+                f"Сохранено в {path}: обработано вопросов {stats.processed}, "
+                f"с ошибками {stats.errors}."
             )
         )
-
-
-def _rag_sources_to_cell(rag_answer: RAGAnswer) -> str:
-    sources_list = _sources_for_answer(rag_answer)
-    if not sources_list and rag_answer.sources:
-        sources_list = _unique_sources(rag_answer.sources)
-    lines: list[str] = []
-    for source in sources_list:
-        url = source.url or "без ссылки"
-        lines.append(
-            f"- {source.title}: {url} (chunk_id={source.chunk_id}, score={source.score:.4f})"
-        )
-    return "\n".join(lines)

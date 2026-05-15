@@ -101,4 +101,3 @@ def write_three_column_answer_block(
     worksheet.cell(
         row=row, column=first_answer_column_index + 2
     ).value = reasoning_text
-

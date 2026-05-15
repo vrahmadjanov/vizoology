@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Задание Excel — Vizoology</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; line-height: 1.45; color: #1a1a1a; }
+    body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .ok { color: #0d6832; margin: 1rem 0; }
+    .muted { font-size: 0.92rem; color: #444; }
+    #status-badge { margin: 0.75rem 0; padding: 0.35rem 0.65rem; display: inline-block; border-radius: 4px; background: #f0f0f0; }
+    #error-box { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; background: #fde8e8; color: #7a1515; white-space: pre-wrap; }
+    #download-row { margin-top: 1.25rem; }
+    a.download { display: inline-block; padding: 0.55rem 1rem; background: #1a6; color: #fff; text-decoration: none; border-radius: 6px; border: 1px solid #185; }
+    a.download:hover { filter: brightness(1.06); }
+  </style>
+</head>
+<body>
+  <h1>Файл принят</h1>
+  <p class="ok">Формирование ответов по документации запущено. Это может занять несколько минут.</p>
+  <p class="muted">Файл: {{ job.original_filename }} · создано {{ job.created_at|date:"Y-m-d H:i" }}</p>
+  <div id="status-badge">Статус: …</div>
+  <div id="error-box" style="display:none;"></div>
+  <div id="download-row"></div>
+
+  <p class="muted" style="margin-top:2rem;"><a href="{% url 'presentation_ask' %}">← Новая загрузка</a></p>
+
+  <script>
+    const statusUrl = "{{ status_url|escapejs }}";
+    const label = document.getElementById("status-badge");
+    const errBox = document.getElementById("error-box");
+    const downloadRow = document.getElementById("download-row");
+
+    const statusLabels = {
+      pending: "Ожидание",
+      processing: "Идёт обработка…",
+      done: "Готово",
+      failed: "Ошибка",
+    };
+
+    async function poll() {
+      try {
+        const res = await fetch(statusUrl, { headers: { "Accept": "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        label.textContent = "Статус: " + (statusLabels[data.status] || data.status);
+
+        if (data.status === "failed") {
+          errBox.style.display = data.error_message ? "block" : "none";
+          errBox.textContent = data.error_message || "Не удалось выполнить задание.";
+          return;
+        }
+        if (data.status === "done" && data.download_url) {
+          downloadRow.innerHTML = '<a class="download" href="' + data.download_url + '">Скачать Excel с ответами</a>';
+          return;
+        }
+      } catch (e) {
+        label.textContent = "Статус: не удалось обновить (сеть?). Повтор…";
+      }
+      setTimeout(poll, 2000);
+    }
+    poll();
+  </script>
+</body>
+</html>

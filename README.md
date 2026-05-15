@@ -128,6 +128,8 @@ docker compose up -d db
 
 **Переменные окружения** (см. `.env.example`): `PARSER_DEFAULT_QUESTION_COLUMN_LETTER` — буква колонки с вопросами по умолчанию, если в команде не передан `--questions-col`.
 
+**Загрузка через браузер:** страница приложения **`presentation`**, URL **`/ask/`** — после отправки формы открывается **`/ask/jobs/<uuid>/`**: ответ «файл принят» приходит сразу, готовность и **ссылка на скачивание** `*_answered.xlsx` появляются по мере обработки (опрос статуса в браузере). Исходные и готовые файлы сохраняются в **`MEDIA_ROOT`** (по умолчанию каталог **`media/`** в корне проекта).
+
 **Примеры:**
 
 ```bash
@@ -147,7 +149,7 @@ docker compose up -d db
 
 ### Запуск веб-сервера (production)
 
-В проекте нет собственных публичных URL API для RAG (в `vizoology/urls.py` подключён только `admin/`). Для отдачи админки и статики в production можно использовать Gunicorn:
+В `vizoology/urls.py` подключены **админка** и HTTP-слой **`presentation`** (пакетный Excel, **`/ask/`**, задания **`/ask/jobs/<uuid>/`**). Для отдачи админки, страницы и статики в production можно использовать Gunicorn:
 
 ```bash
 .venv/bin/python manage.py collectstatic --noinput
@@ -163,7 +165,7 @@ docker compose up -d db
 ```bash
 .venv/bin/python manage.py check_confluence_connection
 .venv/bin/python manage.py check_local_embeddings --limit 1
-.venv/bin/python manage.py test confluence ai parser
+.venv/bin/python manage.py test confluence ai parser presentation
 ```
 
 ### Зависимости

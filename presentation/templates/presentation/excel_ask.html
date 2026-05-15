@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RAG по Excel — Vizoology</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; }
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+    }
+    legend { padding: 0 0.35rem; font-weight: 600; }
+    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
+    label:first-child { margin-top: 0; }
+    input[type=text], input[type=file], input[type=number] {
+      width: 100%;
+      max-width: 20rem;
+      box-sizing: border-box;
+      margin-top: 0.25rem;
+    }
+    .helptext { font-size: 0.82rem; color: #444; margin: 0.2rem 0 0 0; }
+    .errorlist { color: #b00020; margin: 0.25rem 0; padding-left: 1.2rem; font-size: 0.88rem; }
+    button[type=submit] {
+      margin-top: 1rem;
+      padding: 0.55rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a6;
+      color: #fff;
+      border-color: #185;
+    }
+    button[type=submit]:hover { filter: brightness(1.06); }
+    .messages li { margin: 0.35rem 0; }
+    .messages .error { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Пакетные ответы по документации из Excel</h1>
+  <p>Формат тот же, что у команды <code>manage.py ask_excel</code>: три колонки подряд (ответ, источники, обоснование).</p>
+
+  <p>Выберите <code>.xlsx</code> и параметры. После отправки вы сразу перейдёте на страницу статуса; когда файл с ответами будет готов, появится ссылка для скачивания.</p>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <ul class="errorlist">
+      {% for err in form.non_field_errors %}
+        <li>{{ err }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <fieldset>
+      <legend>Параметры</legend>
+      {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+        {{ field.errors }}
+      {% endfor %}
+    </fieldset>
+    <button type="submit">Загрузить и скачать результат</button>
+  </form>
+
+</body>
+</html>

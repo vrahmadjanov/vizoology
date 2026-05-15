@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'confluence',
     'ai',
     'parser',
+    'presentation',
 ]
 
 MIDDLEWARE = [
@@ -92,6 +93,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.media',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -165,6 +167,9 @@ USE_TZ = True
 
 STATIC_URL = os.environ.get("STATIC_URL", "static/")
 STATIC_ROOT = BASE_DIR / os.environ.get("STATIC_ROOT", "staticfiles")
+
+MEDIA_URL = os.environ.get("MEDIA_URL", "media/")
+MEDIA_ROOT = BASE_DIR / "media"
 
 if USE_WHITENOISE:
     STORAGES = {
