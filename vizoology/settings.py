@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     # Custom apps
     'shared',
     'confluence',
+    'ai',
 ]
 
 MIDDLEWARE = [
@@ -211,3 +212,12 @@ EMBEDDING_MODEL_NAME = os.environ.get(
 ).strip()
 EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "32"))
 EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "384"))
+
+
+# Gemini generation
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash").strip()
+
+
+# RAG
+RAG_MIN_SCORE = float(os.environ.get("RAG_MIN_SCORE", "0.55"))
