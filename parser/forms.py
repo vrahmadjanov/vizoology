@@ -3,6 +3,8 @@ from __future__ import annotations
 from django import forms
 from django.conf import settings
 
+from ai.validators import validate_min_score_form, validate_top_k_form
+
 
 class ExcelAskForm(forms.Form):
     workbook = forms.FileField(label="Файл Excel (.xlsx)")
@@ -25,13 +27,12 @@ class ExcelAskForm(forms.Form):
     )
     top_k = forms.IntegerField(
         initial=5,
-        min_value=1,
         label="Top-k",
+        validators=[validate_top_k_form],
     )
     min_score = forms.FloatField(
-        min_value=0.0,
-        max_value=1.0,
         label="Мин. score",
+        validators=[validate_min_score_form],
     )
     save_history = forms.BooleanField(
         required=False,

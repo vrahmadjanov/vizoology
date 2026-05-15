@@ -7,6 +7,7 @@ from typing import Protocol
 from django.conf import settings
 
 from ai.client import GeminiClient, GeminiResponse
+from ai.validators import validate_min_score, validate_top_k
 from confluence.search import ConfluenceSearchResult, search_confluence_chunks
 
 
@@ -69,8 +70,8 @@ def answer_question(
     if not question:
         raise ValueError("question не может быть пустым.")
     min_score = settings.RAG_MIN_SCORE if min_score is None else min_score
-    if not 0 <= min_score <= 1:
-        raise ValueError("min_score должен быть от 0 до 1.")
+    validate_top_k(top_k)
+    validate_min_score(min_score)
 
     results = search_confluence_chunks(question, top_k=top_k)
     sources = source_snippets_from_results(results)

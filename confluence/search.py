@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db.models import F
 from pgvector.django import CosineDistance
 
+from ai.validators import validate_top_k
 from confluence.embeddings import LocalEmbeddingService
 from confluence.models import ConfluencePageChunk
 
@@ -37,8 +38,7 @@ def search_confluence_chunks(
     query = query.strip()
     if not query:
         return []
-    if top_k < 1:
-        raise ValueError("top_k должен быть больше 0.")
+    validate_top_k(top_k)
 
     service = embedding_service or LocalEmbeddingService()
     query_embedding = service.embed_queries([query])[0].vector

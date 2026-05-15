@@ -9,7 +9,10 @@ from django.urls import reverse
 
 from parser.forms import ExcelAskForm
 from parser.models import ExcelAskJob
-from presentation.services.excel_ask import schedule_excel_job_after_commit
+from presentation.services.excel_ask import (
+    create_excel_job,
+    schedule_excel_job_after_commit,
+)
 
 
 def excel_ask_view(request):
@@ -17,36 +20,21 @@ def excel_ask_view(request):
         form = ExcelAskForm(request.POST, request.FILES)
         if form.is_valid():
             upload = form.cleaned_data["workbook"]
-            if not upload.name.lower().endswith(".xlsx"):
+            try:
+                job = create_excel_job(upload, form.cleaned_data)
+            except ValueError as exc:
+                form.add_error("workbook", str(exc))
+            except DatabaseError:
                 form.add_error(
-                    "workbook",
-                    "Допускаются только файлы с расширением .xlsx.",
+                    None,
+                    "Не удалось сохранить задание. Проверьте миграции и доступ к базе данных.",
                 )
             else:
-                try:
-                    job = ExcelAskJob.objects.create(
-                        original_filename=upload.name,
-                        input_file=upload,
-                        sheet=form.cleaned_data["sheet"].strip(),
-                        questions_col=form.cleaned_data["questions_col"].strip(),
-                        answers_start_col=form.cleaned_data[
-                            "answers_start_col"
-                        ].strip(),
-                        top_k=form.cleaned_data["top_k"],
-                        min_score=form.cleaned_data["min_score"],
-                        save_history=form.cleaned_data["save_history"],
-                    )
-                except DatabaseError:
-                    form.add_error(
-                        None,
-                        "Не удалось сохранить задание. Проверьте миграции и доступ к базе данных.",
-                    )
-                else:
-                    schedule_excel_job_after_commit(job)
-                    return redirect(
-                        "presentation_ask_job",
-                        pk=str(job.pk),
-                    )
+                schedule_excel_job_after_commit(job)
+                return redirect(
+                    "presentation_ask_job",
+                    pk=str(job.pk),
+                )
     else:
         form = ExcelAskForm()
 

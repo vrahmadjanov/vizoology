@@ -1,9 +1,10 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError
-from django.conf import settings
 
-from ai.models import QuestionAnswerHistory
-from ai.rag import RAGAnswer, SourceSnippet, answer_question
+from ai.rag import RAGAnswer, answer_question
+from ai.services.history import save_question_answer_history, sources_for_answer
+from ai.validators import validate_min_score, validate_top_k
 
 
 class Command(BaseCommand):
@@ -27,10 +28,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         top_k = options["top_k"]
         min_score = options["min_score"]
-        if top_k < 1:
-            raise CommandError("--top-k должен быть больше 0.")
-        if not 0 <= min_score <= 1:
-            raise CommandError("--min-score должен быть от 0 до 1.")
+        try:
+            validate_top_k(top_k)
+            validate_min_score(min_score)
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
 
         try:
             rag_answer = answer_question(
@@ -42,7 +44,9 @@ class Command(BaseCommand):
             raise CommandError(f"Не удалось получить ответ: {exc}") from exc
 
         try:
-            history = _save_history(rag_answer, top_k=top_k, min_score=min_score)
+            history = save_question_answer_history(
+                rag_answer, top_k=top_k, min_score=min_score
+            )
         except DatabaseError as exc:
             raise CommandError(
                 "Ответ получен, но не удалось сохранить историю в БД. "
@@ -71,52 +75,9 @@ class Command(BaseCommand):
         if rag_answer.sources:
             self.stdout.write("")
             self.stdout.write(self.style.SUCCESS("Источники:"))
-            for source in _sources_for_answer(rag_answer):
+            for source in sources_for_answer(rag_answer):
                 url = source.url or "без ссылки"
                 self.stdout.write(
                     f"- {source.title}: {url} "
                     f"(chunk_id={source.chunk_id}, score={source.score:.4f})"
                 )
-
-
-def _save_history(
-    rag_answer: RAGAnswer,
-    *,
-    top_k: int,
-    min_score: float,
-) -> QuestionAnswerHistory:
-    structured_answer = rag_answer.structured_answer
-    return QuestionAnswerHistory.objects.create(
-        question=rag_answer.question,
-        short_answer=structured_answer.short_answer,
-        reasoning_summary=structured_answer.reasoning_summary,
-        source_numbers=structured_answer.source_numbers,
-        sources=rag_answer.sources_payload(),
-        model_name=rag_answer.model,
-        top_k=top_k,
-        min_score=min_score,
-    )
-
-
-def _sources_for_answer(rag_answer: RAGAnswer) -> list[SourceSnippet]:
-    source_numbers = set(rag_answer.structured_answer.source_numbers)
-    if not source_numbers:
-        return []
-
-    used_sources = [
-        source for source in rag_answer.sources
-        if source.number in source_numbers
-    ]
-    return _unique_sources(used_sources or rag_answer.sources)
-
-
-def _unique_sources(sources: list[SourceSnippet]) -> list[SourceSnippet]:
-    unique = []
-    seen = set()
-    for source in sources:
-        key = source.url or f"chunk:{source.chunk_id}"
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(source)
-    return unique

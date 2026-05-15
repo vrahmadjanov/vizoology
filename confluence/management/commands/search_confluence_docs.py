@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
+from ai.validators import validate_top_k
 from confluence.search import search_confluence_chunks, search_result_excerpt
 
 
@@ -17,8 +18,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         top_k = options["top_k"]
-        if top_k < 1:
-            raise CommandError("--top-k должен быть больше 0.")
+        try:
+            validate_top_k(top_k)
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
 
         results = search_confluence_chunks(options["query"], top_k=top_k)
         if not results:

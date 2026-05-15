@@ -1,15 +1,8 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-from django.utils import timezone
 
-from confluence.models import ConfluencePage
-from confluence.services import (
-    confluence_page_to_record,
-    get_confluence_client,
-    get_confluence_settings,
-    iter_confluence_pages,
-)
+from confluence.services.core import get_confluence_client, get_confluence_settings
+from confluence.services.page_sync import sync_pages_from_confluence
 
 
 class Command(BaseCommand):
@@ -59,67 +52,34 @@ class Command(BaseCommand):
         retries = options["retries"]
         max_pages = options["max_pages"]
 
-        if batch_size < 1:
-            raise CommandError("--batch-size должен быть больше 0.")
-        if start < 0:
-            raise CommandError("--start не может быть отрицательным.")
-        if retries < 0:
-            raise CommandError("--retries не может быть отрицательным.")
-        if max_pages < 0:
-            raise CommandError("--max-pages не может быть отрицательным.")
-
-        created_count = 0
-        updated_count = 0
-        skipped_empty_count = 0
-        seen_count = 0
-
         self.stdout.write(
             f"Читаю страницы из Confluence space={space_key}, start={start}, batch={batch_size}..."
         )
 
         try:
-            pages = iter_confluence_pages(
+            result = sync_pages_from_confluence(
                 client,
-                space_key,
+                base_url=connection_settings.base_url,
+                space_key=space_key,
                 batch_size=batch_size,
                 start=start,
-                max_pages=max_pages,
                 retries=retries,
+                max_pages=max_pages,
+                on_batch_progress=lambda n: self.stdout.write(
+                    f"Обработано страниц: {n}"
+                ),
             )
-            for page in pages:
-                seen_count += 1
-
-                record = confluence_page_to_record(page, connection_settings.base_url)
-                if not record["body_text"]:
-                    skipped_empty_count += 1
-
-                defaults = {
-                    key: value
-                    for key, value in record.items()
-                    if key != "confluence_id"
-                }
-                defaults["synced_at"] = timezone.now()
-
-                with transaction.atomic():
-                    _, created = ConfluencePage.objects.update_or_create(
-                        confluence_id=record["confluence_id"],
-                        defaults=defaults,
-                    )
-
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-
-                if seen_count % batch_size == 0:
-                    self.stdout.write(f"Обработано страниц: {seen_count}")
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
         except Exception as exc:
-            raise CommandError(f"Не удалось синхронизировать страницы Confluence: {exc}") from exc
+            raise CommandError(
+                f"Не удалось синхронизировать страницы Confluence: {exc}"
+            ) from exc
 
         self.stdout.write(
             self.style.SUCCESS(
                 "Синхронизация завершена. "
-                f"Прочитано: {seen_count}, создано: {created_count}, "
-                f"обновлено: {updated_count}, без текста: {skipped_empty_count}."
+                f"Прочитано: {result.seen_count}, создано: {result.created_count}, "
+                f"обновлено: {result.updated_count}, без текста: {result.skipped_empty_count}."
             )
         )

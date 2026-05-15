@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError
-from openpyxl import load_workbook
 
-from parser.services.excel_batch import fill_workbook_rag
+from parser.services.excel_cli import ask_excel_workbook_inplace
 
 
 class Command(BaseCommand):
@@ -66,34 +63,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         path = Path(options["workbook"]).expanduser().resolve()
-        if not path.is_file():
-            raise CommandError(f"Файл не найден: {path}")
-        if path.suffix.lower() != ".xlsx":
-            raise CommandError("Ожидается файл с расширением .xlsx")
-
-        top_k = options["top_k"]
         min_score = options["min_score"]
-        if top_k < 1:
-            raise CommandError("--top-k должен быть больше 0.")
-        if not 0 <= min_score <= 1:
-            raise CommandError("--min-score должен быть от 0 до 1.")
 
         questions_col = options["questions_col"].strip() or None
         answers_start = options["answers_start_col"].strip() or None
         sheet_name = options["sheet"].strip() or None
 
         try:
-            wb = load_workbook(path)
-        except Exception as exc:
-            raise CommandError(f"Не удалось открыть книгу: {exc}") from exc
-
-        try:
-            stats = fill_workbook_rag(
-                wb,
+            stats = ask_excel_workbook_inplace(
+                path,
                 sheet_name=sheet_name,
                 questions_col=questions_col,
                 answers_start_col=answers_start,
-                top_k=top_k,
+                top_k=options["top_k"],
                 min_score=min_score,
                 save_history=not options["no_history"],
                 warn_row=lambda msg: self.stderr.write(self.style.WARNING(msg)),
@@ -106,11 +88,6 @@ class Command(BaseCommand):
                 "Не удалось сохранить историю в БД (миграции ai?). "
                 f"Подробнее: {exc}"
             ) from exc
-
-        try:
-            wb.save(path)
-        except Exception as exc:
-            raise CommandError(f"Не удалось сохранить книгу: {exc}") from exc
 
         self.stdout.write(
             self.style.SUCCESS(

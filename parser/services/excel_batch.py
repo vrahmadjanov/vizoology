@@ -6,12 +6,13 @@ from dataclasses import dataclass
 from django.conf import settings
 from openpyxl import Workbook
 
-from ai.management.commands.ask import (
-    _save_history,
-    _sources_for_answer,
-    _unique_sources,
-)
 from ai.rag import RAGAnswer, answer_question
+from ai.validators import validate_min_score, validate_top_k
+from ai.services.history import (
+    save_question_answer_history,
+    sources_for_answer,
+    unique_sources,
+)
 from parser.services.parser import (
     iter_nonempty_questions_in_column,
     resolve_first_answer_column_index,
@@ -42,10 +43,8 @@ def fill_workbook_rag(
     Книга изменяется на месте.
     """
     min_score = settings.RAG_MIN_SCORE if min_score is None else min_score
-    if top_k < 1:
-        raise ValueError("top_k должен быть больше 0.")
-    if not 0 <= min_score <= 1:
-        raise ValueError("min_score должен быть от 0 до 1.")
+    validate_top_k(top_k)
+    validate_min_score(min_score)
 
     if sheet_name:
         if sheet_name not in workbook.sheetnames:
@@ -98,7 +97,9 @@ def fill_workbook_rag(
         )
         processed += 1
         if save_history:
-            _save_history(rag_answer, top_k=top_k, min_score=min_score)
+            save_question_answer_history(
+                rag_answer, top_k=top_k, min_score=min_score
+            )
         if info_row:
             info_row(f"Строка {row}: готово")
 
@@ -106,9 +107,9 @@ def fill_workbook_rag(
 
 
 def rag_sources_to_cell(rag_answer: RAGAnswer) -> str:
-    sources_list = _sources_for_answer(rag_answer)
+    sources_list = sources_for_answer(rag_answer)
     if not sources_list and rag_answer.sources:
-        sources_list = _unique_sources(rag_answer.sources)
+        sources_list = unique_sources(rag_answer.sources)
     lines: list[str] = []
     for source in sources_list:
         url = source.url or "без ссылки"

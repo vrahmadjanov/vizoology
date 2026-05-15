@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from ai.management.commands.ask import _sources_for_answer, _unique_sources
+from ai.services.history import sources_for_answer, unique_sources
 from ai.rag import (
     RAGAnswer,
     SourceSnippet,
@@ -75,7 +75,7 @@ class RAGPromptTestCase(SimpleTestCase):
             ),
         ]
 
-        unique = _unique_sources(sources)
+        unique = unique_sources(sources)
 
         self.assertEqual(len(unique), 1)
         self.assertEqual(unique[0].chunk_id, 1)
@@ -150,7 +150,7 @@ class RAGPromptTestCase(SimpleTestCase):
             model="test-model",
         )
 
-        sources = _sources_for_answer(rag_answer)
+        sources = sources_for_answer(rag_answer)
 
         self.assertEqual(len(sources), 1)
         self.assertEqual(sources[0].title, "Second")
@@ -177,7 +177,7 @@ class RAGPromptTestCase(SimpleTestCase):
             model="",
         )
 
-        self.assertEqual(_sources_for_answer(rag_answer), [])
+        self.assertEqual(sources_for_answer(rag_answer), [])
 
     def test_rag_answer_sources_payload_excludes_chunk_text(self):
         rag_answer = RAGAnswer(
