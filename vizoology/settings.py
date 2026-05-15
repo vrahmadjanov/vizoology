@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'shared',
     'confluence',
     'ai',
+    'parser',
 ]
 
 MIDDLEWARE = [
@@ -221,3 +222,7 @@ GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash").stri
 
 # RAG
 RAG_MIN_SCORE = float(os.environ.get("RAG_MIN_SCORE", "0.55"))
+
+
+# Parser (Excel-пакеты вопросов)
+PARSER_DEFAULT_QUESTION_COLUMN_LETTER = os.environ.get("PARSER_DEFAULT_QUESTION_COLUMN_LETTER", "Q").strip().upper()

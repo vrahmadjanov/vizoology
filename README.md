@@ -1,23 +1,59 @@
 ## Vizoology
 
-Проект для поиска ответов по документации Visiology из Confluence. Сейчас реализован RAG-фундамент: страницы Confluence скачиваются в БД, текст делится на чанки, для чанков генерируются локальные embeddings и сохраняются в Postgres/pgvector.
+Проект для поиска ответов по документации Visiology из Confluence. Реализован полный RAG-контур: страницы Confluence скачиваются в БД, текст делится на чанки, для чанков генерируются **локальные** embeddings и сохраняются в PostgreSQL с расширением **pgvector**; по запросу находятся ближайшие фрагменты, после чего (при достаточной релевантности) **Google Gemini** формирует краткий структурированный ответ по найденному контексту.
 
 Пример релевантной выдачи поиска:
 
 ![Релевантные результаты поиска по документации](image.png)
 
+### Архитектура и стек
+
+- **Django** 6.x, WSGI-приложение `vizoology.wsgi`.
+- **Приложения**: `shared` (общие утилиты, миграции для pgvector), `confluence` (синхронизация, чанки, векторный поиск), `ai` (RAG, клиент Gemini, история ответов), `parser` (чтение/запись Excel и команда пакетного опроса RAG).
+- **База данных**: PostgreSQL с **pgvector** — векторные поля и индексы используются миграциями `confluence`. Режим `DATABASE_ENGINE=sqlite` в настройках предусмотрен для разработки без Postgres, но **индексация и поиск по embeddings с SQLite не работают**; для описанного ниже пайплайна нужен Postgres.
+- **Эмбеддинги**: локально, через `sentence-transformers`, по умолчанию модель `intfloat/multilingual-e5-small` (размерность вектора 384, должна совпадать с `EMBEDDING_DIMENSIONS` в `.env`).
+- **Генерация ответа**: Google Gemini (`GEMINI_API_KEY`), модель по умолчанию задаётся в `GEMINI_MODEL_NAME` (см. `.env.example`).
+
+Переменные для Confluence в `settings.py` также читаются под совместимыми именами: `CONFLUENCE_URL`, `ATLASSIAN_BASE_URL`, `ATLASSIAN_SPACE_KEY`, `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN` и др. — см. `vizoology/settings.py`, блок Confluence.
+
 ### Что уже умеет
 
-- Подключается к Confluence через Atlassian API.
-- Синхронизирует пространства документации, например `3v16` и ViHelp (`trouble`).
-- Извлекает plain text из страниц.
-- Делит текст на логические чанки.
-- Генерирует embeddings локальной моделью `intfloat/multilingual-e5-small`.
-- Ищет ближайшие чанки через `pgvector` и cosine distance.
+- Подключаться к Confluence через Atlassian API (`atlassian-python-api`).
+- Синхронизировать пространства документации, например `3v16` и ViHelp (`trouble`).
+- Извлекать plain text из страниц.
+- Делить текст на логические чанки.
+- Генерировать embeddings локальной моделью и искать ближайшие чанки в **pgvector** (cosine distance, HNSW-индекс).
+- Строить ответ на вопрос через RAG с проверкой порога релевантности `RAG_MIN_SCORE` и сохранять сессии в модель `ai.QuestionAnswerHistory` (доступ в Django Admin).
+- Обрабатывать **пакет вопросов из Excel** (`.xlsx`): для каждой непустой ячейки в колонке вопросов вызывается тот же RAG, что и у команды `ask`; результаты записываются **в тот же файл** в три соседние колонки (краткий ответ, источники, обоснование). Подробнее — в разделе **Пакетная обработка Excel** ниже.
 
 ### Быстрый старт
 
-1. Скопировать `.env.example` в `.env` и заполнить Confluence-доступы:
+1. Создать виртуальное окружение и установить зависимости:
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+2. Скопировать `.env.example` в `.env` и заполнить как минимум:
+
+   - `SECRET_KEY` — обязателен для Django.
+   - Доступы к Confluence (см. пример ниже).
+   - Для **полного RAG** (команды `ask` и `ask_excel`): `GEMINI_API_KEY`.
+   - Для работы с БД из этого репозитория через Docker: после `docker compose up -d db` контейнер пробрасывает Postgres на **порт хоста `65432`** (внутри контейнера остаётся `5432`). В `.env` укажите, например:
+
+```env
+DATABASE_ENGINE=postgresql
+DATABASE_HOST=localhost
+DATABASE_PORT=65432
+DATABASE_NAME=vizoology
+DATABASE_USER=vizoology_user
+DATABASE_PASSWORD=vizoology_password
+```
+
+Образ и учётные данные по умолчанию совпадают с `docker-compose.yml`.
+
+Минимальный набор для Confluence:
 
 ```env
 CONFLUENCE_BASE_URL=https://your-site.atlassian.net/wiki
@@ -26,13 +62,13 @@ CONFLUENCE_USERNAME=you@example.com
 CONFLUENCE_API_TOKEN=your-token
 ```
 
-2. Запустить Postgres с pgvector:
+3. Запустить Postgres с pgvector:
 
 ```bash
 docker compose up -d db
 ```
 
-3. Применить миграции:
+4. Применить миграции:
 
 ```bash
 .venv/bin/python manage.py migrate
@@ -40,7 +76,7 @@ docker compose up -d db
 
 ### Индексация документации
 
-Для основного пространства из `.env`:
+Для основного пространства из `.env` (`CONFLUENCE_SPACE_KEY`):
 
 ```bash
 .venv/bin/python manage.py sync_confluence_pages
@@ -56,18 +92,80 @@ docker compose up -d db
 .venv/bin/python manage.py embed_confluence_chunks
 ```
 
-### Поиск
+Команда `embed_confluence_chunks` обрабатывает все чанки в БД, которым нужна векторизация (в том числе после добавления нового пространства).
+
+### Поиск и ответы (RAG)
+
+**Только векторный поиск** по чанкам (без вызова LLM):
 
 ```bash
 .venv/bin/python manage.py search_confluence_docs "как работать с mongodb в cli" --top-k 5
 ```
 
-Команда вернёт ближайшие чанки, название страницы, ссылку на Confluence и score релевантности.
+Команда выводит ближайшие чанки, название страницы, ссылку на Confluence и score релевантности.
+
+**Ответ на вопрос** по документации: поиск контекста + Gemini и сохранение записи в историю:
+
+```bash
+.venv/bin/python manage.py ask "как работать с mongodb в cli" --top-k 5
+```
+
+Порог релевантности по умолчанию задаётся `RAG_MIN_SCORE` в `.env`; при низком score Gemini не вызывается, пользователю возвращается сообщение о недостатке данных (при этом найденные фрагменты могут быть показаны в выводе команды).
+
+История запросов доступна в админке: `/admin/` → модель **Question answer histories**.
+
+### Пакетная обработка Excel
+
+Команда **`ask_excel`** читает вопросы из колонки в файле **`.xlsx`**, для каждой строки с непустым текстом вопроса вызывает тот же пайплайн, что и `ask`, затем сохраняет книгу **по тому же пути** (файл перезаписывается).
+
+**Соглашения по книге:**
+
+- Отдельной строки заголовков нет — первая строка листа обрабатывается так же, как и остальные.
+- Номера колонок задаются **буквами** Excel (`Q`, `AA`, …).
+- Строки с **пустой** ячейкой в колонке вопросов пропускаются.
+
+**Запись ответа:** три **подряд идущие** колонки — краткий ответ, текстовый блок источников (в духе вывода `ask`), обоснование (`reasoning_summary`). По умолчанию они начинаются **в первой колонке справа** от колонки вопросов (если вопросы в `Q`, результат — в `R`, `S`, `T`). Свою первую колонку можно задать флагом `--answers-start-col`.
+
+**Переменные окружения** (см. `.env.example`): `PARSER_DEFAULT_QUESTION_COLUMN_LETTER` — буква колонки с вопросами по умолчанию, если в команде не передан `--questions-col`.
+
+**Примеры:**
+
+```bash
+# Колонка вопросов из .env (по умолчанию Q), активный лист, ответы справа от вопроса
+.venv/bin/python manage.py ask_excel ./questions.xlsx
+
+# Явно указать колонку вопросов и лист
+.venv/bin/python manage.py ask_excel ./questions.xlsx --questions-col D --sheet "Лист1"
+
+# Блок ответа начинается с колонки G (занято G:H:I)
+.venv/bin/python manage.py ask_excel ./questions.xlsx --questions-col D --answers-start-col G
+```
+
+Те же параметры контекста, что у `ask`: `--top-k`, `--min-score`. Флаг **`--no-history`** отключает запись в `QuestionAnswerHistory` для каждой строки. При ошибке RAG на строке в первую колонку блока ответа пишется текст ошибки, затем файл всё равно сохраняется после полного прохода.
+
+Условия те же, что для одиночного `ask`: рабочий **Postgres + индекс** для поиска и **`GEMINI_API_KEY`** там, где нужен вызов модели.
+
+### Запуск веб-сервера (production)
+
+В проекте нет собственных публичных URL API для RAG (в `vizoology/urls.py` подключён только `admin/`). Для отдачи админки и статики в production можно использовать Gunicorn:
+
+```bash
+.venv/bin/python manage.py collectstatic --noinput
+.venv/bin/python manage.py run --bind 0.0.0.0:8000
+```
+
+Параметры workers/threads и bind можно задать через аргументы команды или переменные окружения `GUNICORN_*` (см. `shared/management/commands/run.py`). В `docker-compose.yml` закомментирован пример сервиса приложения с `Dockerfile` — при необходимости его можно раскомментировать и донастроить.
+
+`USE_WHITENOISE=true` в `.env` включает раздачу статики через WhiteNoise (см. `vizoology/settings.py`).
 
 ### Полезные проверки
 
 ```bash
 .venv/bin/python manage.py check_confluence_connection
 .venv/bin/python manage.py check_local_embeddings --limit 1
-.venv/bin/python manage.py test confluence
+.venv/bin/python manage.py test confluence ai parser
 ```
+
+### Зависимости
+
+Основные библиотеки перечислены в `requirements.txt` (Django, psycopg2, pgvector, sentence-transformers, torch/transformers, google-genai, **openpyxl**, gunicorn, whitenoise и др.). Первая векторизация скачает выбранную embedding-модель с Hugging Face — учитывайте объём диска и время загрузки.
