@@ -40,8 +40,8 @@ try:
 except ImportError:
     CONFLUENCE_AVAILABLE = False
 
+from confluence.client import ConfluenceClient
 from confluence.services import (
-    get_confluence_client,
     normalize_confluence_results,
     page_body_to_plain_text,
     split_text_into_chunks,
@@ -54,7 +54,7 @@ def _confluence_client_from_env() -> Confluence | None:
     if not CONFLUENCE_AVAILABLE:
         return None
     try:
-        return get_confluence_client()
+        return ConfluenceClient().api
     except ImproperlyConfigured:
         return None
 

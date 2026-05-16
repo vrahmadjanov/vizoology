@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from confluence.models import ConfluencePage, ConfluencePageChunk
+from confluence.models import Chunk, ConfluencePage
 
 
 @admin.register(ConfluencePage)
@@ -17,8 +17,8 @@ class ConfluencePageAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "synced_at")
 
 
-@admin.register(ConfluencePageChunk)
-class ConfluencePageChunkAdmin(admin.ModelAdmin):
+@admin.register(Chunk)
+class ChunkAdmin(admin.ModelAdmin):
     list_display = (
         "page",
         "position",

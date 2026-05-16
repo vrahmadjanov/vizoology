@@ -1,8 +1,9 @@
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
 
-from confluence.services.core import get_confluence_client, get_confluence_settings
-from confluence.services.page_sync import sync_pages_from_confluence
+from confluence.client import ConfluenceClient
+from confluence.services.pages import sync_pages_from_confluence
 
 
 class Command(BaseCommand):
@@ -41,12 +42,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            connection_settings = get_confluence_settings(require_space_key=True)
-            client = get_confluence_client()
+            cf = ConfluenceClient(require_space_key=True)
         except ImproperlyConfigured as exc:
             raise CommandError(str(exc)) from exc
 
-        space_key = options["space_key"] or connection_settings.space_key
+        space_key = options["space_key"] or settings.CONFLUENCE_SPACE_KEY
         batch_size = options["batch_size"]
         start = options["start"]
         retries = options["retries"]
@@ -58,8 +58,8 @@ class Command(BaseCommand):
 
         try:
             result = sync_pages_from_confluence(
-                client,
-                base_url=connection_settings.base_url,
+                cf.api,
+                base_url=settings.CONFLUENCE_BASE_URL,
                 space_key=space_key,
                 batch_size=batch_size,
                 start=start,

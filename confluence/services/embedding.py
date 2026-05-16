@@ -7,7 +7,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from confluence.embeddings import LocalEmbeddingService
-from confluence.models import ConfluencePageChunk
+from confluence.models import Chunk
 
 
 def validate_embed_chunks_options(batch_size: int, max_chunks: int) -> None:
@@ -18,7 +18,7 @@ def validate_embed_chunks_options(batch_size: int, max_chunks: int) -> None:
 
 
 def iter_chunks_to_embed(*, force: bool):
-    chunks = ConfluencePageChunk.objects.select_related("page").exclude(text="")
+    chunks = Chunk.objects.select_related("page").exclude(text="")
     if not force:
         chunks = chunks.filter(
             Q(embedding__isnull=True)
@@ -56,7 +56,7 @@ def embed_chunk_batches(
         on_start(total, embed_service)
 
     processed = 0
-    batch: list[ConfluencePageChunk] = []
+    batch: list[Chunk] = []
 
     for chunk in qs.iterator(chunk_size=batch_size):
         batch.append(chunk)
@@ -76,7 +76,7 @@ def embed_chunk_batches(
 
 def _embed_and_save_batch(
     service: LocalEmbeddingService,
-    chunks: list[ConfluencePageChunk],
+    chunks: list[Chunk],
     batch_size: int,
 ) -> int:
     results = service.embed_passages(
@@ -98,7 +98,7 @@ def _embed_and_save_batch(
         chunk.embedded_at = embedded_at
         chunk.updated_at = embedded_at
 
-    ConfluencePageChunk.objects.bulk_update(
+    Chunk.objects.bulk_update(
         chunks,
         [
             "embedding",

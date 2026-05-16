@@ -1,3 +1,4 @@
-from .page import ConfluencePage, ConfluencePageChunk
+from confluence.models.pages import ConfluencePage
+from confluence.models.chunks import Chunk
 
-__all__ = ["ConfluencePage", "ConfluencePageChunk"]
+__all__ = ["Chunk", "ConfluencePage"]

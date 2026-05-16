@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from confluence.services.chunk_build import build_chunks_for_stored_pages
+from confluence.services.chunks import build_chunks
 
 
 class Command(BaseCommand):
@@ -33,7 +33,7 @@ class Command(BaseCommand):
         max_chars = options["max_chars"]
 
         try:
-            result = build_chunks_for_stored_pages(
+            result = build_chunks(
                 space_key=options["space_key"],
                 page_id=options["page_id"],
                 max_chars=max_chars,

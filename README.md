@@ -79,27 +79,27 @@ docker compose up -d db
 Для основного пространства из `.env` (`CONFLUENCE_SPACE_KEY`):
 
 ```bash
-.venv/bin/python manage.py sync_confluence_pages
-.venv/bin/python manage.py build_confluence_chunks
-.venv/bin/python manage.py embed_confluence_chunks
+.venv/bin/python manage.py sync_pages
+.venv/bin/python manage.py build_chunks
+.venv/bin/python manage.py embed_chunks
 ```
 
 Для ViHelp:
 
 ```bash
-.venv/bin/python manage.py sync_confluence_pages --space-key trouble --batch-size 10 --retries 3
-.venv/bin/python manage.py build_confluence_chunks --space-key trouble
-.venv/bin/python manage.py embed_confluence_chunks
+.venv/bin/python manage.py sync_pages --space-key trouble --batch-size 10 --retries 3
+.venv/bin/python manage.py build_chunks --space-key trouble
+.venv/bin/python manage.py embed_chunks
 ```
 
-Команда `embed_confluence_chunks` обрабатывает все чанки в БД, которым нужна векторизация (в том числе после добавления нового пространства).
+Команда `embed_chunks` обрабатывает все чанки в БД, которым нужна векторизация (в том числе после добавления нового пространства).
 
 ### Поиск и ответы (RAG)
 
 **Только векторный поиск** по чанкам (без вызова LLM):
 
 ```bash
-.venv/bin/python manage.py search_confluence_docs "как работать с mongodb в cli" --top-k 5
+.venv/bin/python manage.py search "как работать с mongodb в cli" --top-k 5
 ```
 
 Команда выводит ближайшие чанки, название страницы, ссылку на Confluence и score релевантности.
@@ -163,8 +163,8 @@ docker compose up -d db
 ### Полезные проверки
 
 ```bash
-.venv/bin/python manage.py check_confluence_connection
-.venv/bin/python manage.py check_local_embeddings --limit 1
+.venv/bin/python manage.py healthcheck
+.venv/bin/python manage.py healthcheck --embeddings --limit 1
 .venv/bin/python manage.py test confluence ai parser presentation
 ```
 

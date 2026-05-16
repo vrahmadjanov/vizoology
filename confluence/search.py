@@ -8,12 +8,12 @@ from pgvector.django import CosineDistance
 
 from ai.validators import validate_top_k
 from confluence.embeddings import LocalEmbeddingService
-from confluence.models import ConfluencePageChunk
+from confluence.models import Chunk
 
 
 @dataclass(frozen=True)
 class ConfluenceSearchResult:
-    chunk: ConfluencePageChunk
+    chunk: Chunk
     distance: float
 
     @property
@@ -44,7 +44,7 @@ def search_confluence_chunks(
     query_embedding = service.embed_queries([query])[0].vector
 
     chunks = (
-        ConfluencePageChunk.objects.select_related("page")
+        Chunk.objects.select_related("page")
         .filter(
             embedding__isnull=False,
             embedding_model=settings.EMBEDDING_MODEL_NAME,

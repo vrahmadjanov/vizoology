@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from confluence.services.embed_chunks import embed_chunk_batches
+from confluence.services.embedding import embed_chunk_batches
 
 
 class Command(BaseCommand):
