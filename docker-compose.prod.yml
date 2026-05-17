@@ -22,8 +22,13 @@ services:
       - .env
     volumes:
       - ./media:/app/media
-    ports:
-      - "8000:8000"
+    networks:
+      - default
+      - index
     depends_on:
       db:
         condition: service_healthy
+
+networks:
+  index:
+    external: true
