@@ -1,20 +1,83 @@
-name: Deploy test
+name: Build and deploy
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: vizoology-deploy
+  cancel-in-progress: true
+
 jobs:
-  docker-smoke:
+  build:
     runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.ghcr.outputs.image }}
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: SSH на сервер — docker ps
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Контекст сборки
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA} actor=${GITHUB_ACTOR}"
+
+      - name: Имя образа в GHCR
+        id: ghcr
+        run: |
+          img="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "image=${img}" >> "$GITHUB_OUTPUT"
+          echo "Образ (база): ${img}"
+          echo "Теги: ${img}:latest, ${img}:${GITHUB_SHA}"
+
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Сборка и push образа
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.ghcr.outputs.image }}:latest
+            ${{ steps.ghcr.outputs.image }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Контекст деплоя
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "Образ для сервера: ${{ needs.build.outputs.image }}:${GITHUB_SHA}"
+
+      - name: Поднять compose на сервере
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          script_stop: true
           script: |
-            docker ps
+            set -euo pipefail
+            echo "[deploy] $(date -u '+%Y-%m-%dT%H:%M:%SZ') старт"
+            cd ~/projects/vizoology
+            echo "[deploy] каталог: $(pwd)"
+            export VIZOOLOGY_IMAGE="${{ needs.build.outputs.image }}:${{ github.sha }}"
+            echo "[deploy] VIZOOLOGY_IMAGE=${VIZOOLOGY_IMAGE}"
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            echo "[deploy] compose up -d завершён"

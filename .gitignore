@@ -1,5 +1,6 @@
 postgres_data/
 .env
+.env.prod
 .venv/
 __pycache__/
 .DS_Store

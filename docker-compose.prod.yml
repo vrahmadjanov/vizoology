@@ -1,0 +1,29 @@
+services:
+  db:
+    image: pgvector/pgvector:pg15-trixie
+    container_name: vizoology_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vizoology_user -d vizoology"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  vizoology:
+    image: ${VIZOOLOGY_IMAGE}
+    container_name: vizoology
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
