@@ -53,5 +53,5 @@ RUN chown -R app:app /app
 USER app
 
 EXPOSE 8000
-
 CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && exec python manage.py run --bind ${GUNICORN_BIND:-0.0.0.0:8000}"]
+
