@@ -53,7 +53,7 @@ class Command(BaseCommand):
             "--min-score",
             type=float,
             default=settings.RAG_MIN_SCORE,
-            help="Минимальный score лучшего фрагмента для вызова Gemini.",
+            help="Минимальный score лучшего фрагмента для вызова модели.",
         )
         parser.add_argument(
             "--no-history",

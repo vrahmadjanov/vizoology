@@ -6,13 +6,13 @@ from typing import Protocol
 
 from django.conf import settings
 
-from ai.client import GeminiClient, GeminiResponse
+from ai.client import DeepSeekClient, LlmResponse
 from ai.validators import validate_min_score, validate_top_k
 from confluence.utils import ConfluenceSearchResult, search_confluence_chunks
 
 
 class TextGenerator(Protocol):
-    def generate_text(self, prompt: str) -> GeminiResponse:
+    def generate_text(self, prompt: str) -> LlmResponse:
         ...
 
 
@@ -103,7 +103,7 @@ def answer_question(
         )
 
     prompt = build_answer_prompt(question, sources)
-    text_generator = generator or GeminiClient()
+    text_generator = generator or DeepSeekClient()
     response = text_generator.generate_text(prompt)
 
     return RAGAnswer(
@@ -180,7 +180,7 @@ def build_answer_prompt(question: str, sources: list[SourceSnippet]) -> str:
 def parse_structured_answer(raw_text: str) -> StructuredAnswer:
     data = json.loads(_strip_json_markdown(raw_text))
     if not isinstance(data, dict):
-        raise ValueError("Gemini вернул JSON не в виде объекта.")
+        raise ValueError("Модель вернула JSON не в виде объекта.")
 
     short_answer = _required_string(data, "short_answer")
     reasoning_summary = _required_string(data, "reasoning_summary")
