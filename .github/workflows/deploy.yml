@@ -1,0 +1,20 @@
+name: Deploy test
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: SSH на сервер — docker ps
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script_stop: true
+          script: |
+            docker ps

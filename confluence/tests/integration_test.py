@@ -94,10 +94,7 @@ class ConfluenceIntegrationTestCase(TestCase):
         """Получение страницы документации и извлечение текста для использования."""
         client = self._require_client()
         page_id = os.environ.get("CONFLUENCE_PAGE_ID", "").strip()
-        space = (
-            os.environ.get("CONFLUENCE_SPACE_KEY", "").strip()
-            or os.environ.get("ATLASSIAN_SPACE_KEY", "").strip()
-        )
+        space = os.environ.get("CONFLUENCE_SPACE_KEY", "").strip()
         title = os.environ.get("CONFLUENCE_PAGE_TITLE", "").strip()
 
         if page_id:
@@ -219,10 +216,7 @@ class ConfluenceIntegrationTestCase(TestCase):
         client = self._require_client()
         
         # Получим доступное пространство
-        space_key = (
-            os.environ.get("CONFLUENCE_SPACE_KEY", "").strip()
-            or os.environ.get("ATLASSIAN_SPACE_KEY", "").strip()
-        )
+        space_key = os.environ.get("CONFLUENCE_SPACE_KEY", "").strip()
         
         if not space_key:
             spaces = client.get_all_spaces(start=0, limit=1)
@@ -441,7 +435,6 @@ class ConfluenceClientTestCase(TestCase):
         CONFLUENCE_BASE_URL="https://test.atlassian.net/wiki",
         CONFLUENCE_USERNAME="test@example.com",
         CONFLUENCE_API_TOKEN="test-token",
-        CONFLUENCE_SPACE_KEY="TEST",
     )
     def test_confluence_client_creation_with_env_vars(self):
         """Тест создания клиента с настройками Django."""
@@ -453,7 +446,6 @@ class ConfluenceClientTestCase(TestCase):
         CONFLUENCE_BASE_URL="",
         CONFLUENCE_USERNAME="",
         CONFLUENCE_API_TOKEN="",
-        CONFLUENCE_SPACE_KEY="",
     )
     def test_confluence_client_creation_missing_vars(self):
         """Тест создания клиента при отсутствии настроек."""

@@ -13,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--space-key",
             default="",
-            help="Ключ пространства Confluence. Если не указан, используется CONFLUENCE_SPACE_KEY.",
+            help="Ключ пространства Confluence (обязательно).",
         )
         parser.add_argument(
             "--batch-size",
@@ -42,11 +42,15 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            cf = ConfluenceClient(require_space_key=True)
+            cf = ConfluenceClient()
         except ImproperlyConfigured as exc:
             raise CommandError(str(exc)) from exc
 
-        space_key = options["space_key"] or settings.CONFLUENCE_SPACE_KEY
+        space_key = (options["space_key"] or "").strip()
+        if not space_key:
+            raise CommandError(
+                "Укажите ключ пространства: python manage.py sync_pages --space-key YOUR_SPACE"
+            )
         batch_size = options["batch_size"]
         start = options["start"]
         retries = options["retries"]

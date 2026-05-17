@@ -18,7 +18,7 @@ from confluence.services.indexing_job import schedule_documentation_indexing
 
 def _available_spaces_context() -> dict:
     try:
-        cf = ConfluenceClient(require_space_key=False)
+        cf = ConfluenceClient()
         return {
             "available_spaces": get_accessible_space_summaries(cf.api),
             "available_spaces_error": None,

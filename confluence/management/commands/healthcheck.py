@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
 
@@ -18,7 +17,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--space-key",
             default="",
-            help="Ключ пространства Confluence. Если не указан, используется CONFLUENCE_SPACE_KEY.",
+            help=(
+                "Ключ пространства: проверить доступ к нему. "
+                "Если не указан — только общая проверка подключения и список пространств."
+            ),
         )
         parser.add_argument(
             "--embeddings",
@@ -44,7 +46,7 @@ class Command(BaseCommand):
             raise CommandError(str(exc)) from exc
 
         client = cf.api
-        space_key = options["space_key"] or settings.CONFLUENCE_SPACE_KEY
+        space_key = (options["space_key"] or "").strip()
 
         try:
             if space_key:

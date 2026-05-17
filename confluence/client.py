@@ -12,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 class ConfluenceClient:
     """Точка входа для работы с Confluence"""
 
-    def __init__(self, *, require_space_key: bool = False) -> None:
+    def __init__(self) -> None:
         missing = []
         if not settings.CONFLUENCE_BASE_URL:
             missing.append("CONFLUENCE_BASE_URL")
@@ -20,8 +20,6 @@ class ConfluenceClient:
             missing.append("CONFLUENCE_USERNAME")
         if not settings.CONFLUENCE_API_TOKEN:
             missing.append("CONFLUENCE_API_TOKEN")
-        if require_space_key and not settings.CONFLUENCE_SPACE_KEY:
-            missing.append("CONFLUENCE_SPACE_KEY")
 
         if missing:
             raise ImproperlyConfigured(

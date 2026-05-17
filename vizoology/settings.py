@@ -225,12 +225,6 @@ CONFLUENCE_BASE_URL = (
     or os.environ.get("ATTLASSIAN_BASE_URL")
     or ""
 ).strip().rstrip("/")
-CONFLUENCE_SPACE_KEY = (
-    os.environ.get("CONFLUENCE_SPACE_KEY")
-    or os.environ.get("ATLASSIAN_SPACE_KEY")
-    or os.environ.get("ATTLASSIAN_SPACE_KEY")
-    or ""
-).strip()
 CONFLUENCE_USERNAME = (
     os.environ.get("CONFLUENCE_USERNAME")
     or os.environ.get("ATLASSIAN_EMAIL")

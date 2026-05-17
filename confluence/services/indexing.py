@@ -72,7 +72,7 @@ def run_documentation_indexing(
     _notify("init", {"space_keys": space_keys})
     logger.info("Индексация документации: старт, пространства %s", space_keys)
 
-    cf = ConfluenceClient(require_space_key=False)
+    cf = ConfluenceClient()
     base_url = settings.CONFLUENCE_BASE_URL
     embed_bs = embed_batch_size if embed_batch_size is not None else settings.EMBEDDING_BATCH_SIZE
 
