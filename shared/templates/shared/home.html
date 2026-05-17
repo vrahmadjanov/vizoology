@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vizoology</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a1a; }
+    body { max-width: 36rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    ul { padding-left: 1.25rem; margin: 1rem 0; }
+    li { margin: 0.35rem 0; }
+    a { color: #06c; }
+    a:visited { color: #609; }
+    .muted { font-size: 0.9rem; color: #444; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Vizoology</h1>
+  <p class="muted">Разделы проекта</p>
+  <ul>
+    <li><a href="{% url 'ask' %}">Вопрос по документации (AI)</a></li>
+    <li><a href="{% url 'confluence:index_documentation_ui' %}">Индексация Confluence</a></li>
+    <li><a href="{% url 'confluence:documentation_search' %}">Поиск по документации</a></li>
+    <li><a href="{% url 'presentation_ask' %}">Пакетные ответы из Excel</a></li>
+    <li><a href="{% url 'admin:index' %}">Админка Django</a></li>
+  </ul>
+</body>
+</html>

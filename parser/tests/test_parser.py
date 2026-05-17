@@ -170,7 +170,7 @@ class FillWorkbookRagTests(SimpleTestCase):
 
 
 class ExcelAskViewTests(SimpleTestCase):
-    URL = "/ask/"
+    URL = "/presentation/ask/"
 
     def test_get_shows_upload_form(self) -> None:
         response = Client().get(self.URL)
@@ -210,7 +210,7 @@ class ExcelAskPostTests(TestCase):
         )
         self.assertEqual(resp.status_code, 302)
         m = re.search(
-            r"/ask/jobs/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+            r"/presentation/ask/jobs/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
             r"[0-9a-f]{4}-[0-9a-f]{12})/",
             resp["Location"],
         )

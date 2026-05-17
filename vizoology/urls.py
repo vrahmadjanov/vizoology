@@ -23,7 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('ai/', include('ai.urls')),
     path('confluence/', include('confluence.urls')),
-    path('', include('presentation.urls')),
+    path('presentation/', include('presentation.urls')),
+    path('', include('shared.urls')),
 ]
 
 if settings.DEBUG:
