@@ -1,3 +1,7 @@
+.git
+.github
+.gitignore
+
 postgres_data/
 .env
 .env.prod

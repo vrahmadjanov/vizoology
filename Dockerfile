@@ -2,39 +2,63 @@
 # Сборка: docker build -t vizoology .
 # Запуск требует переменных окружения (SECRET_KEY, ALLOWED_HOSTS, USE_WHITENOISE=true, БД и т.д.), см. .env.example.
 
+# --- сборка зависимостей (компилятор и libpq-dev не попадают в финальный образ) ---
+FROM python:3.12-slim-bookworm AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+
+COPY requirements.txt .
+# Torch с индекса CPU — обычно на порядок меньше колеса с CUDA с PyPI
+RUN pip install --no-cache-dir \
+        "torch==2.11.0" \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple \
+    && pip install --no-cache-dir -r requirements.txt \
+    && find /venv -depth -type d -name __pycache__ -exec rm -rf {} \; 2>/dev/null || true \
+    && find /venv -type f -name "*.pyc" -delete 2>/dev/null || true
+
+# --- runtime: только системные библиотеки и venv ---
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DJANGO_SETTINGS_MODULE=vizoology.settings
+    DJANGO_SETTINGS_MODULE=vizoology.settings \
+    PATH="/venv/bin:$PATH"
 
 WORKDIR /app
 
-# libpq5 — runtime psycopg2; libpq-dev + build-essential — сборка psycopg2 (нужен pg_config).
-# libgomp1 — torch/numpy/scipy в slim. После pip сборочные пакеты удаляются.
-COPY requirements.txt .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
         libpq5 \
         libgomp1 \
-    && pip install -r requirements.txt \
-    && apt-get purge -y build-essential libpq-dev \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 app \
+    && mkdir -p /app/media
+
+COPY --from=builder /venv /venv
 
 COPY . .
 
-RUN useradd --create-home --uid 1000 app \
-    && mkdir -p /app/media \
-    && chown -R app:app /app
+RUN chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# Нужны переменные из env (SECRET_KEY, ALLOWED_HOSTS, USE_WHITENOISE=true для статики, БД и т.д.)
 CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && exec python manage.py run --bind ${GUNICORN_BIND:-0.0.0.0:8000}"]
