@@ -47,6 +47,18 @@ USE_WHITENOISE = _env_bool("USE_WHITENOISE", default=False)
 _allowed = os.environ.get("ALLOWED_HOSTS", "").strip()
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 
+# HTTPS за reverse proxy (nginx) и проверка Origin/Referer при CSRF (Django 4+)
+_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "").strip()
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(",") if o.strip()]
+
+if _env_bool("BEHIND_REVERSE_PROXY", default=False):
+    # nginx: proxy_set_header X-Forwarded-Proto $scheme;
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
+    if not DEBUG:
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 

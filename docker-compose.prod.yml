@@ -31,4 +31,5 @@ services:
 
 networks:
   index:
-    external: true
+    name: index
+    driver: bridge
