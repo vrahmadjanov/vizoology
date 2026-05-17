@@ -12,15 +12,19 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# libpq — psycopg2; libgomp1 — типичное runtime для torch/numpy/scipy в slim-образах
+# libpq5 — runtime psycopg2; libpq-dev + build-essential — сборка psycopg2 (нужен pg_config).
+# libgomp1 — torch/numpy/scipy в slim. После pip сборочные пакеты удаляются.
+COPY requirements.txt .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
         libpq5 \
         libgomp1 \
+    && pip install -r requirements.txt \
+    && apt-get purge -y build-essential libpq-dev \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install -r requirements.txt
 
 COPY . .
 
