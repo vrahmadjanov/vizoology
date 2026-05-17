@@ -32,8 +32,6 @@ from unittest import skipIf
 from django.test import TestCase, override_settings, tag
 from django.core.exceptions import ImproperlyConfigured
 
-from confluence.embeddings import PASSAGE_PREFIX, format_e5_text
-
 try:
     from atlassian import Confluence
     CONFLUENCE_AVAILABLE = True
@@ -41,12 +39,12 @@ except ImportError:
     CONFLUENCE_AVAILABLE = False
 
 from confluence.client import ConfluenceClient
+from confluence.utils import PASSAGE_PREFIX, format_e5_text, search_result_excerpt
 from confluence.services import (
     normalize_confluence_results,
     page_body_to_plain_text,
     split_text_into_chunks,
 )
-from confluence.search import search_result_excerpt
 
 
 def _confluence_client_from_env() -> Confluence | None:

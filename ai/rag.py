@@ -8,7 +8,7 @@ from django.conf import settings
 
 from ai.client import GeminiClient, GeminiResponse
 from ai.validators import validate_min_score, validate_top_k
-from confluence.search import ConfluenceSearchResult, search_confluence_chunks
+from confluence.utils import ConfluenceSearchResult, search_confluence_chunks
 
 
 class TextGenerator(Protocol):

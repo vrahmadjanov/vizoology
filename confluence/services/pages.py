@@ -9,6 +9,7 @@ from __future__ import annotations
 """
 
 import hashlib
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -21,6 +22,8 @@ from django.utils import timezone
 
 from confluence.models import ConfluencePage
 from confluence.utils import page_body_to_plain_text
+
+logger = logging.getLogger(__name__)
 
 
 def iter_confluence_pages(
@@ -88,9 +91,26 @@ def _get_confluence_page_batch(
                 limit=limit,
                 expand=expand,
             )
-        except Exception:
+        except Exception as exc:
             if attempt >= retries:
+                logger.error(
+                    "Confluence API: список страниц пространства %s (start=%s) "
+                    "не удалось получить после %s попыток: %s",
+                    space_key,
+                    start,
+                    retries + 1,
+                    exc,
+                    exc_info=True,
+                )
                 raise
+            logger.warning(
+                "Confluence API: повтор запроса списка страниц space=%s start=%s (%s/%s): %s",
+                space_key,
+                start,
+                attempt + 1,
+                retries + 1,
+                exc,
+            )
             time.sleep(2**attempt)
 
 
@@ -104,9 +124,23 @@ def _get_confluence_page_by_id(
     for attempt in range(retries + 1):
         try:
             return client.get_page_by_id(page_id, expand=expand)
-        except Exception:
+        except Exception as exc:
             if attempt >= retries:
+                logger.error(
+                    "Confluence API: страница id=%s не загружена после %s попыток: %s",
+                    page_id,
+                    retries + 1,
+                    exc,
+                    exc_info=True,
+                )
                 raise
+            logger.warning(
+                "Confluence API: повтор загрузки страницы id=%s (%s/%s): %s",
+                page_id,
+                attempt + 1,
+                retries + 1,
+                exc,
+            )
             time.sleep(2**attempt)
 
 

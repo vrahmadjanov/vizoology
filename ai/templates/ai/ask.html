@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вопрос по документации — Vizoology</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; line-height: 1.45; color: #1a1a1a; }
+    body { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; }
+    label { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    textarea {
+      width: 100%; box-sizing: border-box; min-height: 5rem;
+      padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc;
+    }
+    button[type=submit] {
+      margin-top: 0.75rem; padding: 0.55rem 1.2rem; font-size: 1rem;
+      cursor: pointer; border-radius: 6px; border: 1px solid #185;
+      background: #1a6; color: #fff;
+    }
+    button[type=submit]:hover { filter: brightness(1.06); }
+    .error { color: #b00020; margin-top: 1rem; }
+    .result { margin-top: 1.5rem; padding: 1rem 1.25rem; border: 1px solid #ccc; border-radius: 6px; }
+    .result h2 { font-size: 1.05rem; margin: 0 0 0.5rem 0; }
+    .result p { margin: 0 0 0.75rem 0; }
+    .result ul { margin: 0; padding-left: 1.2rem; }
+    .muted { font-size: 0.85rem; color: #444; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Вопрос по Confluence</h1>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <label for="question">Вопрос</label>
+    <textarea id="question" name="question" required autofocus>{{ question|default:"" }}</textarea>
+    <button type="submit">Спросить</button>
+  </form>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  {% if answer %}
+    <section class="result">
+      <h2>Ответ</h2>
+      <p>{{ answer }}</p>
+      {% if reasoning %}
+        <h2>Обоснование</h2>
+        <p>{{ reasoning }}</p>
+      {% endif %}
+      {% if sources %}
+        <h2>Источники</h2>
+        <ul>
+          {% for s in sources %}
+            <li>
+              {% if s.url %}<a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>{% else %}{{ s.title }}{% endif %}
+              <span class="muted">(score {{ s.score|floatformat:4 }})</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if model %}<p class="muted">Модель: {{ model }}</p>{% endif %}
+    </section>
+  {% endif %}
+</body>
+</html>

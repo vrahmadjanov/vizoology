@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Индексация Confluence — Vizoology</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    body { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; }
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+    }
+    legend { padding: 0 0.35rem; font-weight: 600; }
+    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
+    label:first-child { margin-top: 0; }
+    input[type=text], input[type=number], textarea {
+      width: 100%;
+      max-width: 28rem;
+      box-sizing: border-box;
+      margin-top: 0.25rem;
+    }
+    textarea { max-width: 100%; min-height: 6rem; }
+    .helptext { font-size: 0.82rem; color: #444; margin: 0.2rem 0 0 0; }
+    .errorlist { color: #b00020; margin: 0.25rem 0; padding-left: 1.2rem; font-size: 0.88rem; }
+    button[type=submit] {
+      margin-top: 1rem;
+      padding: 0.55rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #185;
+      background: #1a6;
+      color: #fff;
+    }
+    button[type=submit]:hover { filter: brightness(1.06); }
+    .messages li { margin: 0.35rem 0; }
+    .messages .success { color: #0a6; }
+    .messages .error { color: #b00020; }
+    .note { font-size: 0.88rem; color: #444; margin-top: 1rem; }
+    .spaces-block { margin: 1.5rem 0; }
+    .spaces-block h2 { font-size: 1.05rem; margin-bottom: 0.35rem; }
+    .spaces-table-wrap { overflow-x: auto; max-height: 22rem; border: 1px solid #ccc; border-radius: 6px; }
+    .spaces-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .spaces-table th, .spaces-table td { text-align: left; padding: 0.35rem 0.65rem; border-bottom: 1px solid #eee; }
+    .spaces-table th { position: sticky; top: 0; background: #f4f4f4; font-weight: 600; }
+    .spaces-table tbody tr:hover { background: #f9f9f9; }
+    .spaces-table code { font-size: 0.92em; }
+  </style>
+</head>
+<body>
+  <h1>Индексация документации Confluence</h1>
+  <p>Синхронизация страниц → чанкинг → эмбеддинги для выбранных пространств. Доступно только персоналу (staff).</p>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <ul class="errorlist">
+      {% for err in form.non_field_errors %}
+        <li>{{ err }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if available_spaces_error %}
+    <p class="errorlist">Не удалось загрузить список пространств из Confluence: {{ available_spaces_error }}</p>
+  {% elif available_spaces %}
+    <section class="spaces-block" aria-label="Доступные пространства">
+      <h2>Доступные пространства</h2>
+      <p class="helptext">В поле ниже указывайте <strong>ключ</strong> (первая колонка), а не название.</p>
+      <div class="spaces-table-wrap">
+        <table class="spaces-table">
+          <thead>
+            <tr><th>Ключ</th><th>Название</th></tr>
+          </thead>
+          <tbody>
+            {% for row in available_spaces %}
+              <tr>
+                <td><code>{{ row.key }}</code></td>
+                <td>{{ row.name }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <fieldset>
+      <legend>Параметры</legend>
+      {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+        {{ field.errors }}
+      {% endfor %}
+    </fieldset>
+    <button type="submit">Запустить индексацию</button>
+  </form>
+
+  <p class="note">После запуска откроется страница статуса задания; при выполнении она периодически обновляется автоматически.</p>
+</body>
+</html>

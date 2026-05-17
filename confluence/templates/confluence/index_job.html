@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статус индексации — {{ job.id }} — Vizoology</title>
+  {% if auto_refresh %}
+  <meta http-equiv="refresh" content="3;url={{ status_url }}">
+  {% endif %}
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    body { max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; word-break: break-all; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .st-pending { background: #e8e8e8; }
+    .st-running { background: #cfe8ff; }
+    .st-done { background: #cfe9cf; }
+    .st-failed { background: #ffd6d6; }
+    dt { font-weight: 600; margin-top: 0.75rem; }
+    dd { margin: 0.25rem 0 0 0; }
+    pre {
+      background: #f6f6f6;
+      padding: 0.75rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      max-height: 24rem;
+      overflow-y: auto;
+    }
+    nav { margin-top: 1.5rem; font-size: 0.92rem; }
+    nav a { margin-right: 1rem; }
+    .muted { color: #555; font-size: 0.88rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Задание индексации</h1>
+  <p>
+    <span class="badge st-{{ job.status }}">{{ job.get_status_display }}</span>
+    <code>{{ job.id }}</code>
+  </p>
+
+  {% if auto_refresh %}
+  <p class="muted">Страница обновляется каждые 3 секунды, пока статус «Ожидает» или «Выполняется».</p>
+  {% endif %}
+
+  <dl>
+    <dt>Этап</dt>
+    <dd>{{ job.stage|default:"—" }}</dd>
+    <dt>Создано</dt>
+    <dd>{{ job.created_at }}</dd>
+    <dt>Старт</dt>
+    <dd>{{ job.started_at|default:"—" }}</dd>
+    <dt>Завершено</dt>
+    <dd>{{ job.finished_at|default:"—" }}</dd>
+    {% if job.error_message %}
+    <dt>Ошибка</dt>
+    <dd style="color:#b00020">{{ job.error_message }}</dd>
+    {% endif %}
+  </dl>
+
+  {% if detail_pretty %}
+  <h2>Детали прогресса</h2>
+  <pre>{{ detail_pretty }}</pre>
+  {% endif %}
+
+  {% if result_pretty %}
+  <h2>Результат</h2>
+  <pre>{{ result_pretty }}</pre>
+  {% endif %}
+
+  <nav>
+    <a href="{{ status_url }}">Обновить</a>
+    <a href="{{ form_url }}">Новая индексация</a>
+  </nav>
+</body>
+</html>

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from confluence.models import Chunk, ConfluencePage
+from confluence.models import Chunk, ConfluencePage, DocumentationIndexJob
 
 
 @admin.register(ConfluencePage)
@@ -30,3 +30,31 @@ class ChunkAdmin(admin.ModelAdmin):
     list_filter = ("page__space_key", "embedding_model")
     search_fields = ("text", "page__title", "page__confluence_id")
     readonly_fields = ("created_at", "updated_at", "embedded_at")
+
+
+@admin.register(DocumentationIndexJob)
+class DocumentationIndexJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "status",
+        "stage",
+        "created_at",
+        "finished_at",
+        "created_by",
+    )
+    list_filter = ("status",)
+    search_fields = ("id", "stage", "error_message")
+    readonly_fields = (
+        "id",
+        "status",
+        "stage",
+        "detail",
+        "params",
+        "result",
+        "error_message",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "started_at",
+        "finished_at",
+    )

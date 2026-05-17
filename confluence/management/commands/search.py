@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from ai.validators import validate_top_k
-from confluence.search import search_confluence_chunks, search_result_excerpt
+from confluence.utils import search_confluence_chunks, search_result_excerpt
 
 
 class Command(BaseCommand):

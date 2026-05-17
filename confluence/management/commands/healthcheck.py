@@ -3,7 +3,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
 
 from confluence.client import ConfluenceClient
-from confluence.embeddings import LocalEmbeddingService
+from confluence.services.accessible_spaces import get_accessible_space_summaries
+from confluence.utils import LocalEmbeddingService
 from confluence.models import Chunk
 
 
@@ -55,11 +56,17 @@ class Command(BaseCommand):
                     )
                 )
             else:
-                spaces = client.get_all_spaces(start=0, limit=5)
-                results = spaces.get("results", []) if isinstance(spaces, dict) else spaces
-                keys = ", ".join(space.get("key", "?") for space in results)
-                suffix = f" Найдены пространства: {keys}." if keys else ""
-                self.stdout.write(self.style.SUCCESS(f"Подключение работает.{suffix}"))
+                self.stdout.write(self.style.SUCCESS("Подключение работает."))
+
+            summaries = get_accessible_space_summaries(client)
+            self.stdout.write("")
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Всего доступных пространств (по API): {len(summaries)}"
+                )
+            )
+            for row in summaries:
+                self.stdout.write(f"  {row['key']}: {row['name']}")
         except Exception as exc:
             raise CommandError(f"Не удалось подключиться к Confluence: {exc}") from exc
 

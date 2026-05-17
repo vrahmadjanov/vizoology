@@ -7,8 +7,8 @@ from django.db.models import F
 from pgvector.django import CosineDistance
 
 from ai.validators import validate_top_k
-from confluence.embeddings import LocalEmbeddingService
 from confluence.models import Chunk
+from confluence.utils.embeddings import LocalEmbeddingService
 
 
 @dataclass(frozen=True)
