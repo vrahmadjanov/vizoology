@@ -6,7 +6,7 @@ from typing import Protocol
 
 from django.conf import settings
 
-from ai.client import DeepSeekClient, LlmResponse
+from ai.client import LlmResponse, PolzaAiClient
 from ai.validators import validate_min_score, validate_top_k
 from confluence.utils import ConfluenceSearchResult, search_confluence_chunks
 
@@ -103,7 +103,7 @@ def answer_question(
         )
 
     prompt = build_answer_prompt(question, sources)
-    text_generator = generator or DeepSeekClient()
+    text_generator = generator or PolzaAiClient()
     response = text_generator.generate_text(prompt)
 
     return RAGAnswer(

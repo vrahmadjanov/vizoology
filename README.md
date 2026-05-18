@@ -1,6 +1,6 @@
 ## Vizoology
 
-Проект для поиска ответов по документации Visiology из Confluence. Реализован полный RAG-контур: страницы Confluence скачиваются в БД, текст делится на чанки, для чанков генерируются **локальные** embeddings и сохраняются в PostgreSQL с расширением **pgvector**; по запросу находятся ближайшие фрагменты, после чего (при достаточной релевантности) **DeepSeek** через OpenAI-совместимый API формирует краткий структурированный ответ по найденному контексту.
+Проект для поиска ответов по документации Visiology из Confluence. Реализован полный RAG-контур: страницы Confluence скачиваются в БД, текст делится на чанки, для чанков генерируются **локальные** embeddings и сохраняются в PostgreSQL с расширением **pgvector**; по запросу находятся ближайшие фрагменты, после чего (при достаточной релевантности) **Polza.ai** через OpenAI-совместимый API формирует краткий структурированный ответ по найденному контексту.
 
 Пример релевантной выдачи поиска:
 
@@ -9,10 +9,10 @@
 ### Архитектура и стек
 
 - **Django** 6.x, WSGI-приложение `vizoology.wsgi`.
-- **Приложения**: `shared` (общие утилиты, миграции для pgvector), `confluence` (синхронизация, чанки, векторный поиск), `ai` (RAG, клиент DeepSeek, история ответов), `parser` (чтение/запись Excel и команда пакетного опроса RAG).
+- **Приложения**: `shared` (общие утилиты, миграции для pgvector), `confluence` (синхронизация, чанки, векторный поиск), `ai` (RAG, клиент Polza.ai, история ответов), `parser` (чтение/запись Excel и команда пакетного опроса RAG).
 - **База данных**: PostgreSQL с **pgvector** — векторные поля и индексы используются миграциями `confluence`. Режим `DATABASE_ENGINE=sqlite` в настройках предусмотрен для разработки без Postgres, но **индексация и поиск по embeddings с SQLite не работают**; для описанного ниже пайплайна нужен Postgres.
 - **Эмбеддинги**: локально, через `sentence-transformers`, по умолчанию модель `intfloat/multilingual-e5-small` (размерность вектора 384, должна совпадать с `EMBEDDING_DIMENSIONS` в `.env`).
-- **Генерация ответа**: DeepSeek (`DEEPSEEK_API_KEY`), модель по умолчанию задаётся в `DEEPSEEK_MODEL_NAME`, база API — в `DEEPSEEK_API_BASE` (см. `.env.example`).
+- **Генерация ответа**: Polza.ai (`POLZA_AI_API_KEY`), модель по умолчанию задаётся в `POLZA_AI_MODEL_NAME`, база API — в `POLZA_AI_API_BASE` (см. `.env.example`).
 
 Переменные для Confluence в `settings.py` также читаются под совместимыми именами: `CONFLUENCE_URL`, `ATLASSIAN_BASE_URL`, `ATLASSIAN_SPACE_KEY`, `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN` и др. — см. `vizoology/settings.py`, блок Confluence.
 
@@ -39,7 +39,7 @@ python -m venv .venv
 
    - `SECRET_KEY` — обязателен для Django.
    - Доступы к Confluence (см. пример ниже).
-   - Для **полного RAG** (команды `ask` и `ask_excel`): `DEEPSEEK_API_KEY`.
+   - Для **полного RAG** (команды `ask` и `ask_excel`): `POLZA_AI_API_KEY`.
    - Для работы с БД из этого репозитория через Docker: после `docker compose up -d db` контейнер пробрасывает Postgres на **порт хоста `65432`** (внутри контейнера остаётся `5432`). В `.env` укажите, например:
 
 ```env
@@ -104,7 +104,7 @@ docker compose up -d db
 
 Команда выводит ближайшие чанки, название страницы, ссылку на Confluence и score релевантности.
 
-**Ответ на вопрос** по документации: поиск контекста + вызов LLM (DeepSeek) и сохранение записи в историю:
+**Ответ на вопрос** по документации: поиск контекста + вызов LLM (Polza.ai) и сохранение записи в историю:
 
 ```bash
 .venv/bin/python manage.py ask "как работать с mongodb в cli" --top-k 5
@@ -145,7 +145,7 @@ docker compose up -d db
 
 Те же параметры контекста, что у `ask`: `--top-k`, `--min-score`. Флаг **`--no-history`** отключает запись в `QuestionAnswerHistory` для каждой строки. При ошибке RAG на строке в первую колонку блока ответа пишется текст ошибки, затем файл всё равно сохраняется после полного прохода.
 
-Условия те же, что для одиночного `ask`: рабочий **Postgres + индекс** для поиска и **`DEEPSEEK_API_KEY`** там, где нужен вызов модели.
+Условия те же, что для одиночного `ask`: рабочий **Postgres + индекс** для поиска и **`POLZA_AI_API_KEY`** там, где нужен вызов модели.
 
 ### Запуск веб-сервера (production)
 
@@ -170,4 +170,4 @@ docker compose up -d db
 
 ### Зависимости
 
-Основные библиотеки перечислены в `requirements.txt` (Django, psycopg2, pgvector, sentence-transformers, torch/transformers, **openai** (DeepSeek), **openpyxl**, gunicorn, whitenoise и др.). Первая векторизация скачает выбранную embedding-модель с Hugging Face — учитывайте объём диска и время загрузки.
+Основные библиотеки перечислены в `requirements.txt` (Django, psycopg2, pgvector, sentence-transformers, torch/transformers, **openai** (Polza.ai), **openpyxl**, gunicorn, whitenoise и др.). Первая векторизация скачает выбранную embedding-модель с Hugging Face — учитывайте объём диска и время загрузки.

@@ -13,8 +13,8 @@ class LlmResponse:
     model: str
 
 
-class DeepSeekClient:
-    """Клиент генерации через DeepSeek OpenAI-compatible API."""
+class PolzaAiClient:
+    """Клиент генерации через Polza.ai OpenAI-compatible API."""
 
     def __init__(
         self,
@@ -23,16 +23,16 @@ class DeepSeekClient:
         model_name: str | None = None,
         base_url: str | None = None,
     ):
-        self.api_key = (api_key or settings.DEEPSEEK_API_KEY).strip()
-        self.model_name = (model_name or settings.DEEPSEEK_MODEL_NAME).strip()
-        self.base_url = (base_url or settings.DEEPSEEK_API_BASE).strip()
+        self.api_key = (api_key or settings.POLZA_AI_API_KEY).strip()
+        self.model_name = (model_name or settings.POLZA_AI_MODEL_NAME).strip()
+        self.base_url = (base_url or settings.POLZA_AI_API_BASE).strip()
 
         if not self.api_key:
-            raise ImproperlyConfigured("Заполните DEEPSEEK_API_KEY в .env.")
+            raise ImproperlyConfigured("Заполните POLZA_AI_API_KEY в .env.")
         if not self.model_name:
-            raise ImproperlyConfigured("Заполните DEEPSEEK_MODEL_NAME в .env.")
+            raise ImproperlyConfigured("Заполните POLZA_AI_MODEL_NAME в .env.")
         if not self.base_url:
-            raise ImproperlyConfigured("Заполните DEEPSEEK_API_BASE в .env.")
+            raise ImproperlyConfigured("Заполните POLZA_AI_API_BASE в .env.")
 
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
 

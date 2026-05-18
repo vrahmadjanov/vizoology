@@ -261,10 +261,15 @@ EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "32"))
 EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "384"))
 
 
-# DeepSeek generation (OpenAI-compatible API)
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-DEEPSEEK_MODEL_NAME = os.environ.get("DEEPSEEK_MODEL_NAME", "deepseek-chat").strip()
-DEEPSEEK_API_BASE = (os.environ.get("DEEPSEEK_API_BASE") or "https://api.deepseek.com").strip()
+# Polza.ai generation (OpenAI-compatible API)
+POLZA_AI_API_KEY = os.environ.get("POLZA_AI_API_KEY", "").strip()
+POLZA_AI_MODEL_NAME = os.environ.get(
+    "POLZA_AI_MODEL_NAME",
+    "google/gemini-3.1-flash-lite",
+).strip()
+POLZA_AI_API_BASE = (
+    os.environ.get("POLZA_AI_API_BASE") or "https://polza.ai/api/v1"
+).strip()
 
 
 # RAG
