@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RAG по Excel — Vizoology</title>
+  <title>Загрузка Excel-опросника — Vizoology</title>
   <style>
     :root {
       font-family: system-ui, sans-serif;
@@ -19,37 +19,147 @@
       margin: 1rem 0;
     }
     legend { padding: 0 0.35rem; font-weight: 600; }
-    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
-    label:first-child { margin-top: 0; }
-    input[type=text], input[type=file], input[type=number] {
-      width: 100%;
-      max-width: 20rem;
-      box-sizing: border-box;
-      margin-top: 0.25rem;
+    .param-fields {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.75rem 1.25rem;
     }
-    .helptext { font-size: 0.82rem; color: #444; margin: 0.2rem 0 0 0; }
-    .errorlist { color: #b00020; margin: 0.25rem 0; padding-left: 1.2rem; font-size: 0.88rem; }
-    button[type=submit] {
+    .param-field {
+      flex: 0 1 auto;
+      min-width: min(10rem, 100%);
+      max-width: 100%;
+    }
+    .param-field label {
+      display: block;
+      margin: 0 0 0.25rem 0;
+      font-size: 0.9rem;
+    }
+    .param-field input[type=text],
+    .param-field input[type=number] {
+      width: 100%;
+      max-width: 10rem;
+      box-sizing: border-box;
+      margin-top: 0;
+    }
+    .save-history-field {
       margin-top: 1rem;
+    }
+    .save-history-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .save-history-row label {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .save-history-row input[type=checkbox] {
+      width: auto;
+      margin: 0;
+      flex-shrink: 0;
+    }
+    .save-history-field > .errorlist {
+      margin-top: 0.35rem;
+    }
+    .workbook-label {
+      display: block;
+      margin-top: 1rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+    .drop-zone {
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 0.35rem;
+      min-height: 11rem;
+      padding: 2.75rem 1.25rem 2rem;
+      text-align: center;
+      border: 2px dashed #b0b0b0;
+      border-radius: 10px;
+      background: #f8f8f8;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .drop-zone:hover { border-color: #208060; background: #f2faf6; }
+    .drop-zone--dragover {
+      border-color: #1a6;
+      background: #e6f5ed;
+      box-shadow: inset 0 0 0 2px rgba(26, 102, 68, 0.2);
+    }
+    .drop-zone-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      font-size: 0;
+      z-index: 1;
+    }
+    .drop-zone-prompt {
+      pointer-events: none;
+      position: relative;
+      z-index: 0;
+      line-height: 1.5;
+    }
+    .drop-zone-prompt strong { display: block; font-size: 1rem; margin-bottom: 0.35rem; }
+    .drop-zone-hint { font-size: 0.88rem; color: #444; }
+    .drop-zone-file {
+      margin: 0.75rem 0 0 0;
+      font-size: 0.88rem;
+      word-break: break-all;
+      color: #185;
+      font-weight: 600;
+    }
+    .drop-zone-error { margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #b00020; }
+    .errorlist { color: #b00020; margin: 0.25rem 0; padding-left: 1.2rem; font-size: 0.88rem; }
+    .form-actions {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .form-actions button[type=submit] { margin-top: 0; }
+    button[type=submit] {
       padding: 0.55rem 1.2rem;
       font-size: 1rem;
       cursor: pointer;
       border-radius: 6px;
-      border: 1px solid #333;
+      border: 1px solid #185;
       background: #1a6;
       color: #fff;
-      border-color: #185;
     }
+    .btn-home {
+      display: inline-block;
+      padding: 0.55rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #666;
+      background: #fff;
+      color: #1a1a1a;
+      text-decoration: none;
+      line-height: normal;
+      box-sizing: border-box;
+    }
+    .btn-home:hover { background: #f2f2f2; }
     button[type=submit]:hover { filter: brightness(1.06); }
     .messages li { margin: 0.35rem 0; }
     .messages .error { color: #b00020; }
   </style>
 </head>
 <body>
-  <h1>Пакетные ответы по документации из Excel</h1>
-  <p>Формат тот же, что у команды <code>manage.py ask_excel</code>: три колонки подряд (ответ, источники, обоснование).</p>
+  <h1>Загрузка Excel-опросника</h1>
 
-  <p>Выберите <code>.xlsx</code> и параметры. После отправки вы сразу перейдёте на страницу статуса; когда файл с ответами будет готов, появится ссылка для скачивания.</p>
+  <p>Перетащите <code>.xlsx</code> в область ниже или выберите файл по клику. После отправки вы сразу перейдёте на страницу статуса. Когда файл с ответами будет готов, появится ссылка для скачивания.</p>
 
   {% if messages %}
     <ul class="messages">
@@ -71,15 +181,118 @@
     {% csrf_token %}
     <fieldset>
       <legend>Параметры</legend>
-      {% for field in form %}
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
-        {{ field.errors }}
-      {% endfor %}
+      <div class="param-fields">
+        {% for field in form %}
+          {% if field.name != "workbook" and field.name != "save_history" %}
+            <div class="param-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <label class="workbook-label" for="{{ form.workbook.id_for_label }}">{{ form.workbook.label }}</label>
+      <div class="drop-zone" id="excel-drop-zone" aria-label="Область для загрузки Excel">
+        {{ form.workbook }}
+        <div class="drop-zone-prompt">
+          <strong>Перетащите файл сюда</strong>
+          <span class="drop-zone-hint">или нажмите, чтобы выбрать .xlsx на диске</span>
+        </div>
+        <p class="drop-zone-file" id="excel-drop-filename" hidden></p>
+        <p class="drop-zone-error" id="excel-drop-error" hidden></p>
+      </div>
+      {{ form.workbook.errors }}
+      <div class="save-history-field">
+        <div class="save-history-row">
+          {{ form.save_history }}
+          <label for="{{ form.save_history.id_for_label }}">{{ form.save_history.label }}</label>
+        </div>
+        {{ form.save_history.errors }}
+      </div>
     </fieldset>
-    <button type="submit">Загрузить и скачать результат</button>
+    <div class="form-actions">
+      <button type="submit">Загрузить</button>
+      <a class="btn-home" href="{% url 'shared:home' %}">На главную</a>
+    </div>
   </form>
+
+  <script>
+    (function () {
+      var zone = document.getElementById("excel-drop-zone");
+      var input = zone && zone.querySelector(".drop-zone-input");
+      var nameEl = document.getElementById("excel-drop-filename");
+      var errEl = document.getElementById("excel-drop-error");
+      if (!zone || !input) return;
+
+      function showError(msg) {
+        errEl.textContent = msg;
+        errEl.hidden = false;
+      }
+      function clearError() {
+        errEl.hidden = true;
+        errEl.textContent = "";
+      }
+      function setFileLabel(file) {
+        if (file && file.name) {
+          nameEl.textContent = "Выбрано: " + file.name;
+          nameEl.hidden = false;
+        } else {
+          nameEl.hidden = true;
+          nameEl.textContent = "";
+        }
+      }
+      function isXlsx(file) {
+        var n = (file && file.name || "").toLowerCase();
+        return n.endsWith(".xlsx");
+      }
+
+      var dragDepth = 0;
+      zone.addEventListener("dragenter", function (e) {
+        e.preventDefault();
+        dragDepth++;
+        zone.classList.add("drop-zone--dragover");
+      });
+      zone.addEventListener("dragleave", function (e) {
+        e.preventDefault();
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) zone.classList.remove("drop-zone--dragover");
+      });
+      zone.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      });
+      zone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        dragDepth = 0;
+        zone.classList.remove("drop-zone--dragover");
+        clearError();
+        var files = e.dataTransfer && e.dataTransfer.files;
+        if (!files || !files.length) return;
+        var file = files[0];
+        if (!isXlsx(file)) {
+          showError("Нужен файл с расширением .xlsx");
+          return;
+        }
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        setFileLabel(file);
+      });
+
+      input.addEventListener("change", function () {
+        clearError();
+        var file = input.files && input.files[0];
+        if (file && !isXlsx(file)) {
+          showError("Нужен файл с расширением .xlsx");
+          input.value = "";
+          setFileLabel(null);
+          return;
+        }
+        setFileLabel(file || null);
+      });
+    })();
+  </script>
 
 </body>
 </html>

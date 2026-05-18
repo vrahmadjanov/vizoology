@@ -19,12 +19,15 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from presentation.views import excel_ask_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('ai/', include('ai.urls')),
     path('confluence/', include('confluence.urls')),
     path('presentation/', include('presentation.urls')),
-    path('', include('shared.urls')),
+    path('', excel_ask_view),
+    path('main/', include('shared.urls')),
 ]
 
 if settings.DEBUG:
