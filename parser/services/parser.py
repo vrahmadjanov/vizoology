@@ -1,10 +1,39 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 from django.conf import settings
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import column_index_from_string, get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
-from openpyxl.utils import column_index_from_string
+
+ANSWER_HEADER_LABELS: tuple[str, str, str] = ("Ответ", "Источники", "Рассуждения")
+ANSWER_COLUMN_WIDTHS: tuple[float, float, float] = (40, 50, 50)
+ANSWER_BLOCK_HEADER_ROW: int = 1
+ANSWER_ROW_MIN_HEIGHT: float = 60
+
+_ANSWER_CELL_ALIGNMENT = Alignment(wrap_text=True, vertical="top")
+_ANSWER_HEADER_FONT = Font(bold=True)
+_SOURCE_LINK_FONT = Font(color="0563C1", underline="single")
+
+
+def format_source_line(number: int, title: str) -> str:
+    """«N. Заголовок» — одна строка в колонке источников."""
+    return f"{number}. {title}"
+
+
+def write_source_cell(
+    cell,
+    *,
+    number: int,
+    title: str,
+    url: str | None,
+) -> None:
+    cell.value = format_source_line(number, title)
+    _apply_answer_cell_format(cell)
+    if url:
+        cell.hyperlink = url
+        cell.font = _SOURCE_LINK_FONT
 
 
 def parse_excel_column_letter(letter: str) -> int:
@@ -84,20 +113,124 @@ def resolve_first_answer_column_index(
     return question_idx + 1
 
 
+def _apply_answer_cell_format(cell) -> None:
+    cell.alignment = _ANSWER_CELL_ALIGNMENT
+
+
+def ensure_answer_block_headers(
+    worksheet: Worksheet,
+    first_answer_column_index: int,
+    *,
+    header_row: int = ANSWER_BLOCK_HEADER_ROW,
+) -> None:
+    """Заголовки блока ответа в первой строке (только в пустые ячейки)."""
+    for offset, label in enumerate(ANSWER_HEADER_LABELS):
+        cell = worksheet.cell(
+            row=header_row, column=first_answer_column_index + offset
+        )
+        if cell.value in (None, ""):
+            cell.value = label
+        cell.alignment = _ANSWER_CELL_ALIGNMENT
+        cell.font = _ANSWER_HEADER_FONT
+
+
+def apply_answer_block_column_widths(
+    worksheet: Worksheet,
+    first_answer_column_index: int,
+) -> None:
+    """Ширина колонок блока ответа (символы Excel)."""
+    for offset, width in enumerate(ANSWER_COLUMN_WIDTHS):
+        letter = get_column_letter(first_answer_column_index + offset)
+        worksheet.column_dimensions[letter].width = width
+
+
+def apply_answer_row_min_height(
+    worksheet: Worksheet,
+    row: int,
+    *,
+    min_height: float = ANSWER_ROW_MIN_HEIGHT,
+) -> None:
+    """Минимальная высота строки для читаемости многострочного текста."""
+    dim = worksheet.row_dimensions[row]
+    if dim.height is None or dim.height < min_height:
+        dim.height = min_height
+
+
+def _excel_formula_string(value: str) -> str:
+    return value.replace('"', '""')
+
+
+def sources_cell_formula(sources: Sequence[tuple[int, str, str | None]]) -> str:
+    """
+    Формула Excel: каждый источник на новой строке, заголовок — кликабельная ссылка.
+    """
+    if not sources:
+        return ""
+    parts: list[str] = []
+    for number, title, url in sources:
+        line = _excel_formula_string(format_source_line(number, title))
+        if url:
+            safe_url = _excel_formula_string(url)
+            parts.append(f'HYPERLINK("{safe_url}","{line}")')
+        else:
+            parts.append(f'"{line}"')
+    if len(parts) == 1:
+        return f"={parts[0]}"
+    return "=" + "&CHAR(10)&".join(parts)
+
+
+def write_sources_cell(
+    cell,
+    sources: Sequence[tuple[int, str, str | None]],
+) -> None:
+    """Одна ячейка: «N. Заголовок» на каждой строке, заголовок — гиперссылка."""
+    if not sources:
+        cell.value = ""
+        _apply_answer_cell_format(cell)
+        return
+
+    if len(sources) == 1:
+        number, title, url = sources[0]
+        if url:
+            write_source_cell(
+                cell, number=number, title=title, url=url
+            )
+            return
+        cell.value = format_source_line(number, title)
+        _apply_answer_cell_format(cell)
+        return
+
+    cell.value = sources_cell_formula(sources)
+    _apply_answer_cell_format(cell)
+    cell.font = _SOURCE_LINK_FONT
+
+
 def write_three_column_answer_block(
     worksheet: Worksheet,
     row: int,
     *,
     first_answer_column_index: int,
     answer_text: str,
-    sources_text: str,
+    sources: Sequence[tuple[int, str, str | None]] | None = None,
+    sources_text: str = "",
     reasoning_text: str,
 ) -> None:
     """Пишет три ячейки подряд: ответ, источники, рассуждения."""
-    worksheet.cell(row=row, column=first_answer_column_index).value = answer_text
-    worksheet.cell(
-        row=row, column=first_answer_column_index + 1
-    ).value = sources_text
-    worksheet.cell(
+    answer_cell = worksheet.cell(row=row, column=first_answer_column_index)
+    answer_cell.value = answer_text
+    _apply_answer_cell_format(answer_cell)
+
+    sources_cell = worksheet.cell(row=row, column=first_answer_column_index + 1)
+    if sources is not None:
+        write_sources_cell(sources_cell, sources)
+    else:
+        sources_cell.value = sources_text
+        _apply_answer_cell_format(sources_cell)
+
+    reasoning_cell = worksheet.cell(
         row=row, column=first_answer_column_index + 2
-    ).value = reasoning_text
+    )
+    reasoning_cell.value = reasoning_text
+    _apply_answer_cell_format(reasoning_cell)
+
+    apply_answer_row_min_height(worksheet, row)

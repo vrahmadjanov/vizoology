@@ -278,3 +278,8 @@ RAG_MIN_SCORE = float(os.environ.get("RAG_MIN_SCORE", "0.55"))
 
 # Parser (Excel-пакеты вопросов)
 PARSER_DEFAULT_QUESTION_COLUMN_LETTER = os.environ.get("PARSER_DEFAULT_QUESTION_COLUMN_LETTER", "Q").strip().upper()
+# Параллельные RAG-запросы по строкам опросника (1 = последовательно)
+EXCEL_ASK_MAX_WORKERS = max(
+    1,
+    int(os.environ.get("EXCEL_ASK_MAX_WORKERS", "8")),
+)
