@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>История обработки опросников — Vizoology</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+    }
+    body { max-width: 56rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+    .nav-row {
+      margin-top: 2rem;
+      margin-bottom: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    .nav-row a {
+      color: #06c;
+      text-decoration: none;
+    }
+    .nav-row a:hover { text-decoration: underline; }
+    .btn {
+      display: inline-block;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      border: 1px solid #185;
+      background: #1a6;
+      color: #fff !important;
+      text-decoration: none !important;
+    }
+    .btn:hover { filter: brightness(1.06); }
+    .btn-secondary {
+      border-color: #666;
+      background: #fff;
+      color: #1a1a1a !important;
+    }
+    .btn-secondary:hover { background: #f2f2f2; }
+    .table-wrap { overflow-x: auto; margin-top: 0.5rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f5f5f5; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafafa; }
+    .status-pending { color: #666; }
+    .status-processing { color: #175ea0; }
+    .status-done { color: #0d6832; font-weight: 600; }
+    .status-failed { color: #b00020; font-weight: 600; }
+    .nowrap { white-space: nowrap; }
+    .muted { color: #444; font-size: 0.88rem; }
+    .empty { margin-top: 1rem; color: #444; }
+    .pager { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+    .file-name a { color: #06c; text-decoration: none; }
+    .file-name a:hover { text-decoration: underline; }
+    .err-snippet {
+      font-size: 0.82rem;
+      color: #7a1515;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .job-id a { color: #06c; text-decoration: none; font-size: 0.82rem; }
+    .job-id a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>История обработки опросников</h1>
+
+  {% if page_obj.paginator.count == 0 %}
+    <p class="empty">Пока нет ни одного задания.</p>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">id</th>
+            <th>Файл</th>
+            <th class="nowrap">Статус</th>
+            <th class="nowrap">Когда</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in page_obj %}
+            <tr>
+              <td class="nowrap job-id">
+                <a href="{% url 'presentation_ask_job' pk=job.pk %}">{{ job.pk }}</a>
+              </td>
+              <td class="file-name">
+                {% if job.status == "done" and job.result_file.name %}
+                  <a href="{% url 'presentation_ask_job_download' pk=job.pk %}">{{ job.original_filename }}</a>
+                {% else %}
+                  {{ job.original_filename }}
+                {% endif %}
+              </td>
+              <td class="nowrap">
+                {% if job.status == "pending" %}
+                  <span class="status-pending">{{ job.get_status_display }}</span>
+                {% elif job.status == "processing" %}
+                  <span class="status-processing">{{ job.get_status_display }}</span>
+                {% elif job.status == "done" %}
+                  <span class="status-done">{{ job.get_status_display }}</span>
+                {% else %}
+                  <span class="status-failed">{{ job.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="nowrap">{{ job.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% if job.status == "failed" and job.error_message %}
+              <tr>
+                <td colspan="4" class="err-snippet">{{ job.error_message|truncatechars:400 }}</td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="pager" aria-label="Страницы">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">← Назад</a>
+        {% endif %}
+        <span class="muted">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Вперёд →</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% endif %}
+
+  <div class="nav-row">
+    <a class="btn btn-secondary" href="{% url 'shared:home' %}">На главную</a>
+    <a class="btn" href="{% url 'presentation_ask' %}">Новая загрузка</a>
+  </div>
+</body>
+</html>

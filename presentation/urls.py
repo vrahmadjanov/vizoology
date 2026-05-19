@@ -6,6 +6,11 @@ from presentation import views
 urlpatterns = [
     path("ask/", views.excel_ask_view, name="presentation_ask"),
     path(
+        "ask/jobs/history/",
+        views.excel_ask_job_list_view,
+        name="presentation_excel_job_history",
+    ),
+    path(
         "ask/jobs/",
         RedirectView.as_view(pattern_name="presentation_ask", permanent=False),
         name="presentation_ask_jobs",

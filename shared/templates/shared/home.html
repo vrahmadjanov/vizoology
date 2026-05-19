@@ -5,25 +5,154 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vizoology</title>
   <style>
-    :root { font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a1a; }
-    body { max-width: 36rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
-    ul { padding-left: 1.25rem; margin: 1rem 0; }
-    li { margin: 0.35rem 0; }
-    a { color: #06c; }
-    a:visited { color: #609; }
-    .muted { font-size: 0.9rem; color: #444; margin-top: 1.5rem; }
+    :root {
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+      --accent: #1a6;
+      --accent-border: #185;
+      --surface: #f7faf8;
+      --border: #e2ebe6;
+      --muted: #5a5a5a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 34rem;
+      margin: 2.5rem auto 3rem;
+      padding: 0 1.25rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .lead {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .nav-group {
+      margin: 1.75rem 0 0;
+    }
+    .nav-group-title {
+      margin: 0 0 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .nav-list a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0.95rem;
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+      transition: background 0.12s ease;
+    }
+    .nav-list li:last-child a { border-bottom: none; }
+    .nav-list a:hover {
+      background: var(--surface);
+    }
+    .nav-list a:hover .nav-arrow {
+      color: var(--accent);
+      transform: translateX(2px);
+    }
+    .nav-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .nav-arrow {
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      color: #aaa;
+      transition: color 0.12s ease, transform 0.12s ease;
+    }
+    .nav-list--muted a {
+      color: var(--muted);
+    }
+    .nav-list--muted a:hover {
+      color: #1a1a1a;
+    }
   </style>
 </head>
 <body>
-  <h1>Vizoology</h1>
-  <p class="muted">Разделы проекта</p>
-  <ul>
-    <li><a href="{% url 'ask' %}">Вопрос по документации (AI)</a></li>
-    <li><a href="{% url 'confluence:index_documentation_ui' %}">Индексация Confluence</a></li>
-    <li><a href="{% url 'confluence:documentation_search' %}">Поиск по документации</a></li>
-    <li><a href="{% url 'presentation_ask' %}">Пакетные ответы из Excel</a></li>
-    <li><a href="{% url 'admin:index' %}">Админка Django</a></li>
-  </ul>
+  <header>
+    <h1>Vizoology</h1>
+    <p class="lead">Инструменты для работы с документацией и опросниками</p>
+  </header>
+
+  <section class="nav-group" aria-labelledby="nav-ai">
+    <h2 class="nav-group-title" id="nav-ai">AI</h2>
+    <ul class="nav-list">
+      <li>
+        <a href="{% url 'ask' %}">
+          <span class="nav-label">Спросить у AI</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-group" aria-labelledby="nav-confluence">
+    <h2 class="nav-group-title" id="nav-confluence">Confluence</h2>
+    <ul class="nav-list">
+      <li>
+        <a href="{% url 'confluence:index_documentation_ui' %}">
+          <span class="nav-label">Индексация документации</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'confluence:documentation_search' %}">
+          <span class="nav-label">Поиск по документации</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-group" aria-labelledby="nav-excel">
+    <h2 class="nav-group-title" id="nav-excel">Опросники</h2>
+    <ul class="nav-list">
+      <li>
+        <a href="{% url 'presentation_ask' %}">
+          <span class="nav-label">Загрузка Excel-опросника</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'presentation_excel_job_history' %}">
+          <span class="nav-label">История обработки</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-group" aria-labelledby="nav-admin">
+    <h2 class="nav-group-title" id="nav-admin">Система</h2>
+    <ul class="nav-list nav-list--muted">
+      <li>
+        <a href="{% url 'admin:index' %}">
+          <span class="nav-label">Админка</span>
+          <span class="nav-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+    </ul>
+  </section>
 </body>
 </html>

@@ -10,7 +10,7 @@
       line-height: 1.45;
       color: #1a1a1a;
     }
-    body { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+    body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.35rem; }
     fieldset {
       border: 1px solid #ccc;
@@ -19,15 +19,58 @@
       margin: 1rem 0;
     }
     legend { padding: 0 0.35rem; font-weight: 600; }
-    label { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
-    label:first-child { margin-top: 0; }
-    input[type=text], input[type=number], textarea {
+    .param-fields {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.75rem 1.25rem;
+      margin-top: 1rem;
+    }
+    .param-field {
+      flex: 0 1 auto;
+      min-width: min(10rem, 100%);
+      max-width: 100%;
+    }
+    .param-field label {
+      display: block;
+      margin: 0 0 0.25rem 0;
+      font-size: 0.9rem;
+    }
+    .param-field input[type=text],
+    .param-field input[type=number] {
       width: 100%;
-      max-width: 28rem;
+      max-width: 10rem;
       box-sizing: border-box;
+      margin-top: 0;
+    }
+    .param-field > .helptext {
+      margin-top: 0.2rem;
+    }
+    .param-field > .errorlist {
       margin-top: 0.25rem;
     }
-    textarea { max-width: 100%; min-height: 6rem; }
+    .checkbox-fields {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .checkbox-field-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .checkbox-field-row label {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .checkbox-field-row input[type=checkbox] {
+      width: auto;
+      margin: 0;
+      flex-shrink: 0;
+    }
     .helptext { font-size: 0.82rem; color: #444; margin: 0.2rem 0 0 0; }
     .errorlist { color: #b00020; margin: 0.25rem 0; padding-left: 1.2rem; font-size: 0.88rem; }
     button[type=submit] {
@@ -41,23 +84,67 @@
       color: #fff;
     }
     button[type=submit]:hover { filter: brightness(1.06); }
+    button[type=submit]:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      filter: none;
+    }
+    .form-actions {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .form-actions button[type=submit] { margin-top: 0; }
+    .btn-home {
+      display: inline-block;
+      padding: 0.55rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #666;
+      background: #fff;
+      color: #1a1a1a;
+      text-decoration: none;
+      line-height: normal;
+      box-sizing: border-box;
+    }
+    .btn-home:hover { background: #f2f2f2; }
     .messages li { margin: 0.35rem 0; }
     .messages .success { color: #0a6; }
     .messages .error { color: #b00020; }
-    .note { font-size: 0.88rem; color: #444; margin-top: 1rem; }
-    .spaces-block { margin: 1.5rem 0; }
-    .spaces-block h2 { font-size: 1.05rem; margin-bottom: 0.35rem; }
-    .spaces-table-wrap { overflow-x: auto; max-height: 22rem; border: 1px solid #ccc; border-radius: 6px; }
+    .spaces-field { margin-top: 0; }
+    .spaces-field > label {
+      display: block;
+      font-weight: 600;
+      margin: 0 0 0.35rem 0;
+      font-size: 0.9rem;
+    }
+    .spaces-table-wrap { overflow-x: auto; max-height: 22rem; border: 1px solid #ccc; border-radius: 6px; margin-top: 0.5rem; }
     .spaces-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
     .spaces-table th, .spaces-table td { text-align: left; padding: 0.35rem 0.65rem; border-bottom: 1px solid #eee; }
     .spaces-table th { position: sticky; top: 0; background: #f4f4f4; font-weight: 600; }
     .spaces-table tbody tr:hover { background: #f9f9f9; }
     .spaces-table code { font-size: 0.92em; }
+    .spaces-table input[type=checkbox] {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
+    .spaces-table label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: 0;
+      cursor: pointer;
+    }
+    .spaces-empty { font-size: 0.88rem; color: #555; margin: 0.35rem 0 0; }
   </style>
 </head>
 <body>
   <h1>Индексация документации Confluence</h1>
-  <p>Синхронизация страниц → чанкинг → эмбеддинги для выбранных пространств. Доступно только персоналу (staff).</p>
+  <p>Процесс индексации документации Confluence происходит в несколько этапов: сохранение страниц из официальной документации по выбранным пространствам (space), дробление страниц на чанки, векторизация чанков. Индексация происходит в фоне: после начала процесса индексации вы попадёте на страницу со статусами индексации.</p>
 
   {% if messages %}
     <ul class="messages">
@@ -75,44 +162,72 @@
     </ul>
   {% endif %}
 
-  {% if available_spaces_error %}
-    <p class="errorlist">Не удалось загрузить список пространств из Confluence: {{ available_spaces_error }}</p>
-  {% elif available_spaces %}
-    <section class="spaces-block" aria-label="Доступные пространства">
-      <h2>Доступные пространства</h2>
-      <p class="helptext">В поле ниже указывайте <strong>ключ</strong> (первая колонка), а не название.</p>
-      <div class="spaces-table-wrap">
-        <table class="spaces-table">
-          <thead>
-            <tr><th>Ключ</th><th>Название</th></tr>
-          </thead>
-          <tbody>
-            {% for row in available_spaces %}
-              <tr>
-                <td><code>{{ row.key }}</code></td>
-                <td>{{ row.name }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  {% endif %}
-
   <form method="post" novalidate>
     {% csrf_token %}
     <fieldset>
       <legend>Параметры</legend>
-      {% for field in form %}
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
-        {{ field.errors }}
-      {% endfor %}
-    </fieldset>
-    <button type="submit">Запустить индексацию</button>
-  </form>
 
-  <p class="note">После запуска откроется страница статуса задания; при выполнении она периодически обновляется автоматически.</p>
+      <div class="spaces-field">
+        <label for="id_space_keys_0">{{ form.space_keys.label }}</label>
+        {% if form.space_keys.help_text %}<p class="helptext">{{ form.space_keys.help_text }}</p>{% endif %}
+        {{ form.space_keys.errors }}
+
+        {% if available_spaces_error %}
+          <p class="errorlist">Не удалось загрузить список пространств из Confluence: {{ available_spaces_error }}</p>
+        {% elif available_spaces %}
+          <div class="spaces-table-wrap">
+            <table class="spaces-table">
+              <thead>
+                <tr><th></th><th>Ключ</th><th>Название</th></tr>
+              </thead>
+              <tbody>
+                {% for checkbox in form.space_keys %}
+                  <tr>
+                    <td>{{ checkbox.tag }}</td>
+                    <td><code>{{ checkbox.data.value }}</code></td>
+                    <td>{{ checkbox.choice_label }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="spaces-empty">Нет доступных пространств Confluence.</p>
+        {% endif %}
+      </div>
+
+      <div class="param-fields">
+        {% for field in form %}
+          {% if field.name != "space_keys" and field.field.widget.input_type != "checkbox" %}
+            <div class="param-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="checkbox-fields">
+        {% for field in form %}
+          {% if field.name != "space_keys" and field.field.widget.input_type == "checkbox" %}
+            <div class="checkbox-field">
+              <div class="checkbox-field-row">
+                {{ field }}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              </div>
+              {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="form-actions">
+      <a class="btn-home" href="{% url 'shared:home' %}">На главную</a>
+      <button type="submit"{% if available_spaces_error or not available_spaces %} disabled{% endif %}>Запустить индексацию</button>
+    </div>
+  </form>
 </body>
 </html>

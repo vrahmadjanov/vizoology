@@ -19,18 +19,27 @@ from confluence.services.indexing_job import schedule_documentation_indexing
 def _available_spaces_context() -> dict:
     try:
         cf = ConfluenceClient()
+        spaces = get_accessible_space_summaries(cf.api)
         return {
-            "available_spaces": get_accessible_space_summaries(cf.api),
+            "available_spaces": spaces,
+            "space_choices": [(s["key"], s["name"]) for s in spaces if s["key"]],
             "available_spaces_error": None,
         }
     except Exception as exc:
-        return {"available_spaces": [], "available_spaces_error": str(exc)}
+        return {
+            "available_spaces": [],
+            "space_choices": [],
+            "available_spaces_error": str(exc),
+        }
 
 
 @staff_member_required
 def index_documentation_form(request: HttpRequest) -> HttpResponse:
+    spaces_ctx = _available_spaces_context()
+    space_choices = spaces_ctx["space_choices"]
+
     if request.method == "POST":
-        form = DocumentationIndexForm(request.POST)
+        form = DocumentationIndexForm(request.POST, space_choices=space_choices)
         if form.is_valid():
             keys = form.cleaned_data["space_keys_list"]
             embed_bs = form.cleaned_data.get("embed_batch_size")
@@ -39,10 +48,10 @@ def index_documentation_form(request: HttpRequest) -> HttpResponse:
                 "batch_size": form.cleaned_data["batch_size"],
                 "start": 0,
                 "retries": 2,
-                "max_pages": form.cleaned_data["max_pages"],
+                "max_pages": 0,
                 "max_chars": form.cleaned_data["max_chars"],
                 "dry_run_chunks": form.cleaned_data["dry_run_chunks"],
-                "embed_max_chunks": form.cleaned_data["embed_max_chunks"],
+                "embed_max_chunks": 0,
                 "force_embed": form.cleaned_data["force_embed"],
                 "embed_batch_size": embed_bs,
             }
@@ -59,9 +68,9 @@ def index_documentation_form(request: HttpRequest) -> HttpResponse:
                 job_id=job_id,
             )
     else:
-        form = DocumentationIndexForm()
+        form = DocumentationIndexForm(space_choices=space_choices)
 
-    ctx = {"form": form, **_available_spaces_context()}
+    ctx = {"form": form, **spaces_ctx}
     return render(
         request,
         "confluence/index_form.html",

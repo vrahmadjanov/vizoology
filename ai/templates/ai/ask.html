@@ -3,22 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Вопрос по документации — Vizoology</title>
+  <title>Спросить у AI — Vizoology</title>
   <style>
     :root { font-family: system-ui, sans-serif; line-height: 1.45; color: #1a1a1a; }
     body { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.35rem; }
-    label { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; }
-    textarea {
-      width: 100%; box-sizing: border-box; min-height: 5rem;
-      padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc;
+    .page-nav {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
     }
-    button[type=submit] {
-      margin-top: 0.75rem; padding: 0.55rem 1.2rem; font-size: 1rem;
-      cursor: pointer; border-radius: 6px; border: 1px solid #185;
-      background: #1a6; color: #fff;
+    .btn {
+      display: inline-block;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      border: 1px solid #666;
+      background: #fff;
+      color: #1a1a1a;
+      text-decoration: none;
     }
-    button[type=submit]:hover { filter: brightness(1.06); }
+    .btn:hover { background: #f2f2f2; }
+    form { margin: 1rem 0; }
+    .search-row {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.5rem;
+      align-items: stretch;
+      width: 100%;
+    }
+    .search-row input[type=text] {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0.4rem 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .search-row button {
+      flex: 0 0 auto;
+      padding: 0.45rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #185;
+      background: #1a6;
+      color: #fff;
+    }
+    .search-row button:hover { filter: brightness(1.06); }
     .error { color: #b00020; margin-top: 1rem; }
     .result { margin-top: 1.5rem; padding: 1rem 1.25rem; border: 1px solid #ccc; border-radius: 6px; }
     .result h2 { font-size: 1.05rem; margin: 0 0 0.5rem 0; }
@@ -28,13 +61,14 @@
   </style>
 </head>
 <body>
-  <h1>Вопрос по Confluence</h1>
+  <h1>Спросить у AI</h1>
 
   <form method="post" novalidate>
     {% csrf_token %}
-    <label for="question">Вопрос</label>
-    <textarea id="question" name="question" required autofocus>{{ question|default:"" }}</textarea>
-    <button type="submit">Спросить</button>
+    <div class="search-row">
+      <input id="question" type="text" name="question" value="{{ question|default:'' }}" placeholder="Например: как настроить права доступа" required autofocus autocomplete="off" aria-label="Вопрос">
+      <button type="submit">Спросить</button>
+    </div>
   </form>
 
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
@@ -61,5 +95,10 @@
       {% if model %}<p class="muted">Модель: {{ model }}</p>{% endif %}
     </section>
   {% endif %}
+
+  <div class="page-nav">
+    <a class="btn" href="{% url 'shared:home' %}">На главную</a>
+    <a class="btn" href="{% url 'presentation_ask' %}">Загрузить опросник</a>
+  </div>
 </body>
 </html>

@@ -178,6 +178,39 @@ class ExcelAskViewTests(SimpleTestCase):
         self.assertContains(response, "multipart/form-data")
 
 
+class ExcelJobHistoryViewTests(TestCase):
+    def test_list_empty_200(self) -> None:
+        url = reverse("presentation_excel_job_history")
+        r = Client().get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Пока нет ни одного задания.")
+
+    def test_list_shows_job(self) -> None:
+        wb = Workbook()
+        bio = BytesIO()
+        wb.save(bio)
+        content = bio.getvalue()
+        with tempfile.TemporaryDirectory() as tmp:
+            with override_settings(MEDIA_ROOT=tmp):
+                job = ExcelAskJob.objects.create(
+                    original_filename="batch.xlsx",
+                    sheet="Лист1",
+                    questions_col="Q",
+                    answers_start_col="R",
+                    top_k=5,
+                    min_score=0.55,
+                    save_history=True,
+                )
+                job.input_file.save("in.xlsx", ContentFile(content))
+        url = reverse("presentation_excel_job_history")
+        r = Client().get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "batch.xlsx")
+        self.assertContains(r, "Лист1")
+        job_url = reverse("presentation_ask_job", kwargs={"pk": str(job.pk)})
+        self.assertContains(r, job_url)
+
+
 class ExcelAskPostTests(TestCase):
     @patch("presentation.services.excel_ask._start_excel_job_thread")
     @patch.object(transaction, "on_commit", side_effect=lambda func: func())

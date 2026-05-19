@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from django.core.paginator import Paginator
 from django.db import DatabaseError
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,6 +40,20 @@ def excel_ask_view(request):
         form = ExcelAskForm()
 
     return render(request, "presentation/excel_ask.html", {"form": form})
+
+
+def excel_ask_job_list_view(request):
+    """Список заданий Excel (история)."""
+    paginator = Paginator(
+        ExcelAskJob.objects.all(),
+        per_page=30,
+    )
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+    return render(
+        request,
+        "presentation/excel_job_list.html",
+        {"page_obj": page_obj},
+    )
 
 
 def excel_ask_job_view(request, pk):

@@ -3,65 +3,318 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Задание Excel — Vizoology</title>
+  <title>Обработка опросника — Vizoology</title>
   <style>
-    :root { font-family: system-ui, sans-serif; line-height: 1.45; color: #1a1a1a; }
-    body { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.25rem; }
-    .ok { color: #0d6832; margin: 1rem 0; }
-    .muted { font-size: 0.92rem; color: #444; }
-    #status-badge { margin: 0.75rem 0; padding: 0.35rem 0.65rem; display: inline-block; border-radius: 4px; background: #f0f0f0; }
-    #error-box { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; background: #fde8e8; color: #7a1515; white-space: pre-wrap; }
-    #download-row { margin-top: 1.25rem; }
-    a.download { display: inline-block; padding: 0.55rem 1rem; background: #1a6; color: #fff; text-decoration: none; border-radius: 6px; border: 1px solid #185; }
-    a.download:hover { filter: brightness(1.06); }
+    :root {
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.45;
+      color: #1a1a1a;
+      --accent: #1a6;
+      --accent-border: #185;
+      --surface: #f7faf8;
+      --border: #e2ebe6;
+      --muted: #5a5a5a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 34rem;
+      margin: 2.5rem auto 3rem;
+      padding: 0 1.25rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    .lead {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .status-card {
+      margin: 1.75rem 0 1.25rem;
+      padding: 1.5rem 1.25rem 1.35rem;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .status-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      margin: 0 auto 0.85rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+    .status-card[data-status="pending"] .status-icon,
+    .status-card[data-status="processing"] .status-icon {
+      background: #e8f0ec;
+      color: #2a6b4f;
+    }
+    .status-card[data-status="done"] .status-icon {
+      background: #d8f0e4;
+      color: #0d6832;
+    }
+    .status-card[data-status="failed"] .status-icon {
+      background: #fde8e8;
+      color: #9b1c1c;
+    }
+    .status-card[data-status="network"] .status-icon {
+      background: #f0f0f0;
+      color: #666;
+    }
+    .status-label {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .status-hint {
+      margin: 0.45rem 0 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      min-height: 1.3em;
+    }
+    .spinner {
+      width: 1.35rem;
+      height: 1.35rem;
+      border: 2px solid #c5ddd2;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .meta {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.9rem;
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .meta li {
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid #eee;
+    }
+    .meta li:last-child { border-bottom: none; }
+    .meta-label {
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .meta-value {
+      text-align: right;
+      word-break: break-word;
+    }
+    .job-id {
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      color: #666;
+    }
+    .meta-link {
+      color: var(--accent);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .meta-link:hover { text-decoration: underline; }
+    .meta-muted { color: #999; }
+    .error-box {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      background: #fde8e8;
+      border: 1px solid #f0c4c4;
+      color: #7a1515;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .error-box[hidden] { display: none !important; }
+    .page-nav {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.5rem 0.95rem;
+      font-size: 0.92rem;
+      border-radius: 8px;
+      border: 1px solid var(--accent-border);
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn:hover { filter: brightness(1.06); }
+    .btn-secondary {
+      border-color: #bbb;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    .btn-secondary:hover { background: #f5f5f5; filter: none; }
   </style>
 </head>
 <body>
-  <h1>Файл принят</h1>
-  <p class="ok">Формирование ответов по документации запущено. Это может занять несколько минут.</p>
-  <p class="muted">Файл: {{ job.original_filename }} · создано {{ job.created_at|date:"Y-m-d H:i" }}</p>
-  <div id="status-badge">Статус: …</div>
-  <div id="error-box" style="display:none;"></div>
-  <div id="download-row"></div>
+  <header>
+    <h1>Обработка опросника</h1>
+    <p class="lead">Следите за статусом. Когда обработка завершится, в таблице появится ссылка на результат.</p>
+  </header>
 
-  <p class="muted" style="margin-top:2rem;"><a href="{% url 'presentation_ask' %}">← Новая загрузка</a></p>
+  <section class="status-card" id="status-card" data-status="{{ job.status }}" aria-live="polite">
+    <div class="status-icon" id="status-icon" aria-hidden="true">
+      {% if job.status == "done" %}✓{% elif job.status == "failed" %}!{% else %}<span class="spinner"></span>{% endif %}
+    </div>
+    <p class="status-label" id="status-label">{{ job.get_status_display }}</p>
+    <p class="status-hint" id="status-hint">
+      {% if job.status == "pending" %}Задание в очереди…
+      {% elif job.status == "processing" %}Идёт разбор и заполнение ответов — обычно это несколько минут.
+      {% elif job.status == "done" %}Файл с ответами готов — ссылка в таблице ниже.
+      {% elif job.status == "failed" %}См. описание ошибки.
+      {% endif %}
+    </p>
+  </section>
+
+  <ul class="meta">
+    <li>
+      <span class="meta-label">Файл</span>
+      <span class="meta-value">{{ job.original_filename }}</span>
+    </li>
+    <li>
+      <span class="meta-label">Создано</span>
+      <span class="meta-value">{{ job.created_at|date:"d.m.Y, H:i" }}</span>
+    </li>
+    <li>
+      <span class="meta-label">Задание</span>
+      <span class="meta-value job-id" title="{{ job.id }}">{{ job.id }}</span>
+    </li>
+    <li>
+      <span class="meta-label">Результат</span>
+      <span class="meta-value" id="result-value">
+        {% if job.status == "done" and job.result_file %}
+          <a class="meta-link" href="{{ download_url }}">Скачать файл</a>
+        {% else %}
+          <span class="meta-muted">—</span>
+        {% endif %}
+      </span>
+    </li>
+  </ul>
+
+  <div class="error-box" id="error-box" {% if job.status != "failed" %}hidden{% endif %}>
+    {% if job.error_message %}{{ job.error_message }}{% else %}Не удалось выполнить задание.{% endif %}
+  </div>
+
+  <nav class="page-nav" aria-label="Навигация">
+    <a class="btn btn-secondary" href="{% url 'shared:home' %}">На главную</a>
+    <a class="btn btn-secondary" href="{% url 'presentation_excel_job_history' %}">История</a>
+    <a class="btn" href="{% url 'presentation_ask' %}">Новая загрузка</a>
+  </nav>
 
   <script>
-    const statusUrl = "{{ status_url|escapejs }}";
-    const label = document.getElementById("status-badge");
-    const errBox = document.getElementById("error-box");
-    const downloadRow = document.getElementById("download-row");
+    (function () {
+      var statusUrl = "{{ status_url|escapejs }}";
+      var card = document.getElementById("status-card");
+      var iconEl = document.getElementById("status-icon");
+      var labelEl = document.getElementById("status-label");
+      var hintEl = document.getElementById("status-hint");
+      var errBox = document.getElementById("error-box");
+      var resultValue = document.getElementById("result-value");
 
-    const statusLabels = {
-      pending: "Ожидание",
-      processing: "Идёт обработка…",
-      done: "Готово",
-      failed: "Ошибка",
-    };
+      var statusLabels = {
+        pending: "Ожидание",
+        processing: "Идёт обработка",
+        done: "Готово",
+        failed: "Ошибка",
+      };
+      var statusHints = {
+        pending: "Задание в очереди…",
+        processing: "Идёт разбор и заполнение ответов — обычно это несколько минут.",
+        done: "Файл с ответами готов — ссылка в таблице ниже.",
+        failed: "См. описание ошибки.",
+      };
 
-    async function poll() {
-      try {
-        const res = await fetch(statusUrl, { headers: { "Accept": "application/json" }, cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        label.textContent = "Статус: " + (statusLabels[data.status] || data.status);
-
-        if (data.status === "failed") {
-          errBox.style.display = data.error_message ? "block" : "none";
-          errBox.textContent = data.error_message || "Не удалось выполнить задание.";
-          return;
+      function setIcon(status) {
+        if (status === "pending" || status === "processing") {
+          iconEl.innerHTML = '<span class="spinner" aria-hidden="true"></span>';
+        } else if (status === "done") {
+          iconEl.textContent = "✓";
+        } else if (status === "failed") {
+          iconEl.textContent = "!";
+        } else {
+          iconEl.textContent = "…";
         }
-        if (data.status === "done" && data.download_url) {
-          downloadRow.innerHTML = '<a class="download" href="' + data.download_url + '">Скачать Excel с ответами</a>';
-          return;
-        }
-      } catch (e) {
-        label.textContent = "Статус: не удалось обновить (сеть?). Повтор…";
       }
-      setTimeout(poll, 2000);
-    }
-    poll();
+
+      function applyStatus(status) {
+        card.setAttribute("data-status", status);
+        labelEl.textContent = statusLabels[status] || status;
+        hintEl.textContent = statusHints[status] || "";
+        setIcon(status);
+      }
+
+      function showError(msg) {
+        errBox.hidden = false;
+        errBox.textContent = msg || "Не удалось выполнить задание.";
+      }
+
+      function hideError() {
+        errBox.hidden = true;
+        errBox.textContent = "";
+      }
+
+      function setResult(url) {
+        if (url) {
+          resultValue.innerHTML =
+            '<a class="meta-link" href="' + url + '">Скачать файл</a>';
+        } else {
+          resultValue.innerHTML = '<span class="meta-muted">—</span>';
+        }
+      }
+
+      async function poll() {
+        try {
+          var res = await fetch(statusUrl, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          var data = await res.json();
+          applyStatus(data.status);
+
+          if (data.status === "failed") {
+            setResult("");
+            showError(data.error_message);
+            return;
+          }
+          hideError();
+          if (data.status === "done" && data.download_url) {
+            setResult(data.download_url);
+            return;
+          }
+          setResult("");
+        } catch (e) {
+          card.setAttribute("data-status", "network");
+          labelEl.textContent = "Не удалось обновить статус";
+          hintEl.textContent = "Проверьте соединение — повтор через пару секунд…";
+          setIcon("network");
+        }
+        setTimeout(poll, 2000);
+      }
+
+      var initial = "{{ job.status|escapejs }}";
+      if (initial === "pending" || initial === "processing") {
+        poll();
+      }
+    })();
   </script>
 </body>
 </html>
