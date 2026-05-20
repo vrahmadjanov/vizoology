@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db import DatabaseError
 from django.http import FileResponse, Http404, JsonResponse
@@ -16,6 +17,7 @@ from presentation.services.excel_ask import (
 )
 
 
+@staff_member_required
 def excel_ask_view(request):
     if request.method == "POST":
         form = ExcelAskForm(request.POST, request.FILES)
@@ -42,6 +44,7 @@ def excel_ask_view(request):
     return render(request, "presentation/excel_ask.html", {"form": form})
 
 
+@staff_member_required
 def excel_ask_job_list_view(request):
     """Список заданий Excel (история)."""
     paginator = Paginator(
@@ -56,6 +59,7 @@ def excel_ask_job_list_view(request):
     )
 
 
+@staff_member_required
 def excel_ask_job_view(request, pk):
     """Страница «задание принято» и опрос готовности."""
     job = get_object_or_404(ExcelAskJob, pk=pk)
@@ -75,6 +79,7 @@ def excel_ask_job_view(request, pk):
     )
 
 
+@staff_member_required
 def excel_ask_job_status_json(request, pk):
     """JSON для опроса: статус и ссылка на скачивание когда готово."""
     job = get_object_or_404(ExcelAskJob, pk=pk)
@@ -91,6 +96,7 @@ def excel_ask_job_status_json(request, pk):
     return JsonResponse(payload)
 
 
+@staff_member_required
 def excel_ask_job_download_view(request, pk):
     """Отдаёт готовый .xlsx."""
     job = get_object_or_404(ExcelAskJob, pk=pk)

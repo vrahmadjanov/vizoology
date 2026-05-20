@@ -1,3 +1,4 @@
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import path
 from django.views.generic import RedirectView
 
@@ -12,7 +13,9 @@ urlpatterns = [
     ),
     path(
         "ask/jobs/",
-        RedirectView.as_view(pattern_name="presentation_ask", permanent=False),
+        staff_member_required(
+            RedirectView.as_view(pattern_name="presentation_ask", permanent=False),
+        ),
         name="presentation_ask_jobs",
     ),
     path(

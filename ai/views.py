@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render
 
 from ai.rag import answer_question
 from ai.services.history import sources_for_answer
 
 
+@staff_member_required
 def ask(request):
     ctx: dict = {}
     if request.method == "POST":

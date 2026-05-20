@@ -3,6 +3,7 @@ import tempfile
 from io import BytesIO
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
@@ -324,19 +325,32 @@ class FillWorkbookRagTests(SimpleTestCase):
         mock_process.assert_called_once()
 
 
-class ExcelAskViewTests(SimpleTestCase):
+class StaffClientMixin:
+    def setUp(self) -> None:
+        super().setUp()
+        user_model = get_user_model()
+        self.staff_user = user_model.objects.create_user(
+            username="staff_test",
+            password="test",
+            is_staff=True,
+        )
+        self.client = Client()
+        self.client.force_login(self.staff_user)
+
+
+class ExcelAskViewTests(StaffClientMixin, TestCase):
     URL = "/presentation/ask/"
 
     def test_get_shows_upload_form(self) -> None:
-        response = Client().get(self.URL)
+        response = self.client.get(self.URL)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "multipart/form-data")
 
 
-class ExcelJobHistoryViewTests(TestCase):
+class ExcelJobHistoryViewTests(StaffClientMixin, TestCase):
     def test_list_empty_200(self) -> None:
         url = reverse("presentation_excel_job_history")
-        r = Client().get(url)
+        r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Пока нет ни одного задания.")
 
@@ -358,7 +372,7 @@ class ExcelJobHistoryViewTests(TestCase):
                 )
                 job.input_file.save("in.xlsx", ContentFile(content))
         url = reverse("presentation_excel_job_history")
-        r = Client().get(url)
+        r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "batch.xlsx")
         self.assertContains(r, "Лист1")
@@ -366,7 +380,7 @@ class ExcelJobHistoryViewTests(TestCase):
         self.assertContains(r, job_url)
 
 
-class ExcelAskPostTests(TestCase):
+class ExcelAskPostTests(StaffClientMixin, TestCase):
     @patch("presentation.services.excel_ask._start_excel_job_thread")
     @patch.object(transaction, "on_commit", side_effect=lambda func: func())
     def test_upload_redirects_to_job_page(self, mock_thread, _mock_on_commit) -> None:
@@ -384,7 +398,7 @@ class ExcelAskPostTests(TestCase):
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ),
         )
-        resp = Client().post(
+        resp = self.client.post(
             reverse("presentation_ask"),
             data={
                 "sheet": "",
@@ -438,7 +452,7 @@ class ExcelJobRunnerFileTests(TransactionTestCase):
                 self.assertTrue(job.result_file.name)
 
 
-class ExcelAskJobApiTests(TransactionTestCase):
+class ExcelAskJobApiTests(StaffClientMixin, TransactionTestCase):
     def test_status_json_returns_pending(self) -> None:
         wb = Workbook()
         bio = BytesIO()
@@ -457,7 +471,7 @@ class ExcelAskJobApiTests(TransactionTestCase):
                 )
                 job.input_file.save("in.xlsx", ContentFile(content))
 
-        r = Client().get(
+        r = self.client.get(
             reverse(
                 "presentation_ask_job_status", kwargs={"pk": str(job.pk)}
             )
